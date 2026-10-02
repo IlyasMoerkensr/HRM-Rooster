@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="nl" class="h-full bg-slate-950 text-slate-100 antialiased">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HRM Fitness Urmond - Narrowcasting Rooster</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Inter & Orbitron / Outfit Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              magenta: '#FF007F',
+              cyan: '#00F0FF',
+              dark: '#070913',
+              card: 'rgba(15, 23, 42, 0.75)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-ticker {
+      display: inline-flex;
+      white-space: nowrap;
+      animation: marquee 35s linear infinite;
+    }
+    .animate-ticker:hover {
+      animation-play-state: paused;
+    }
+    .neon-glow-magenta {
+      text-shadow: 0 0 20px rgba(255, 0, 127, 0.6);
+    }
+    .neon-glow-cyan {
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-panel-active {
+      background: linear-gradient(135deg, rgba(255, 0, 127, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%);
+      border: 1px solid rgba(255, 0, 127, 0.4);
+      box-shadow: 0 0 25px rgba(255, 0, 127, 0.2);
+    }
+    .glass-panel-live {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 2px solid rgba(52, 211, 153, 0.85);
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.35), inset 0 0 20px rgba(16, 185, 129, 0.15);
+      position: relative;
+    }
+    @keyframes pulse-emerald {
+      0%, 100% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), inset 0 0 15px rgba(16, 185, 129, 0.15); }
+      50% { box-shadow: 0 0 50px rgba(16, 185, 129, 0.65), inset 0 0 25px rgba(16, 185, 129, 0.25); }
+    }
+    .live-pulse-glow {
+      animation: pulse-emerald 2.5s infinite ease-in-out;
+    }
+    /* Vast canvas van 960x540 CSS px (= 1280x720 @ 213 dpi), schaalt mee met het venster */
+    #stage {
+      position: fixed; left: 50%; top: 50%;
+      width: 960px; height: 540px;
+      transform-origin: center center;
+      transform: translate(-50%, -50%);
+    }
+    #weekGridContainer { align-content: stretch; grid-template-rows: repeat(2, auto); }
+    /* Custom subtle scrollbar if needed */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+
+<body class="h-full overflow-hidden flex flex-col bg-[#060813] text-white selection:bg-brand-magenta select-none">
+
+  <!-- Background decorative light effects -->
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-brand-magenta/15 rounded-full blur-[120px]"></div>
+    <div class="absolute top-1/2 -right-32 w-96 h-96 bg-brand-cyan/15 rounded-full blur-[140px]"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px]"></div>
+  </div>
+
+  <!-- Ontworpen voor 1280x720 @ 213 dpi (tvdpi) = 960x540 CSS px, alles op één pagina, 32 inch -->
+  <main id="stage" class="z-10 p-3 flex flex-row gap-3 overflow-hidden">
+
+    <!-- LEFT PANEL: Today's Schedule (Focus Display) -->
+    <section id="todaySection" class="w-[330px] shrink-0 min-h-0 flex flex-col gap-2 overflow-hidden">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-7 bg-brand-magenta rounded-full shadow-md shadow-brand-magenta/50"></div>
+          <h2 class="text-lg font-black font-display tracking-tight text-white uppercase leading-tight">VANDAAG</h2>
+          <p id="todaySubtext" class="hidden"></p>
+        </div>
+        <!-- Active Day Pill -->
+        <span id="activeDayBadge" class="px-2.5 py-1 rounded-lg text-sm font-black bg-brand-magenta/25 text-brand-magenta border border-brand-magenta/50 shadow-md shadow-brand-magenta/20 uppercase tracking-wider">
+          Vandaag
+        </span>
+      </div>
+
+      <!-- Container for Today's Classes list (fills full left height) -->
+      <div class="flex-1 min-h-0 glass-panel rounded-xl p-2 border border-white/10 overflow-y-auto space-y-2 shadow-xl relative" id="todayClassesContainer">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Full Weekly Schedule -->
+    <section id="weekSection" class="flex-1 min-w-0 min-h-0 flex flex-col gap-2 overflow-hidden">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-7 bg-brand-cyan rounded-full shadow-md shadow-brand-cyan/50"></div>
+          <h2 class="text-lg font-black font-display tracking-tight text-white uppercase leading-tight">WEEKROOSTER</h2>
+        </div>
+
+        <!-- Legend / Key (Clear for gym floor) -->
+        <div class="flex items-center gap-3 text-sm font-bold text-slate-300">
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-brand-cyan shadow-sm shadow-brand-cyan/50"></span> Screen</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-brand-magenta shadow-sm shadow-brand-magenta/50"></span> Live</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span> Hyrox</span>
+        </div>
+      </div>
+
+      <!-- Days Grid (Mon - Sun): 2 kolommen staand, 4 kolommen liggend -->
+      <div class="flex-1 min-h-0 grid grid-cols-4 gap-2 overflow-hidden" id="weekGridContainer">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <div id="daySelectorModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel p-6 rounded-2xl max-w-md w-full border border-white/20 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-display font-bold text-lg text-white">Selecteer testdag</h3>
+        <button onclick="toggleDaySelectorModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-300 mb-4">Schakel de actieve dag om te zien hoe het scherm eruit ziet op andere momenten van de week:</p>
+      <div class="grid grid-cols-2 gap-2 text-sm" id="testDayButtons"></div>
+      
+      <!-- Test simulation toggle for LIVE class -->
+      <button id="simLiveToggleBtn" onclick="toggleSimulatedLiveClass()" class="w-full mt-3 py-2 bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-bold rounded-xl hover:bg-emerald-500/30 text-xs tracking-wider flex items-center justify-center gap-2 transition">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span id="simLiveBtnText">SIMULEER LES "NU AAN DE GANG"</span>
+      </button>
+
+      <button onclick="resetToActualToday()" class="w-full mt-2 py-2 bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan font-bold rounded-xl hover:bg-brand-cyan/30 text-xs tracking-wider">
+        TERUG NAAR ECHTE VANDAAG
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Complete official schedule as published on HRM Fitness Urmond
+    const scheduleData = [
+      {
+        dayIndex: 1,
+        dayName: 'Maandag',
+        classes: [
+          { time: '09:00', duration: 60, name: 'TotalBalance', instructor: 'Instructeur', type: 'balance', onScreen: false },
+          { time: '10:00', duration: 60, name: 'Zumba', instructor: 'By All Stars Movement', type: 'dance', onScreen: false },
+          { time: '18:30', duration: 60, name: 'PowerPump', instructor: 'Virtueel', type: 'strength', onScreen: true },
+          { time: '19:00', duration: 60, name: 'Hyrox', instructor: 'Coach', type: 'hyrox', onScreen: false },
+          { time: '19:30', duration: 60, name: 'TotalBalance', instructor: 'Virtueel', type: 'balance', onScreen: true }
+        ]
+      },
+      {
+        dayIndex: 2,
+        dayName: 'Dinsdag',
+        classes: [
+          { time: '18:30', duration: 60, name: 'Spinning', instructor: 'Virtueel', type: 'cycling', onScreen: true },
+          { time: '20:00', duration: 60, name: 'Zumba', instructor: 'By All Stars Movement', type: 'dance', onScreen: false }
+        ]
+      },
+      {
+        dayIndex: 3,
+        dayName: 'Woensdag',
+        classes: [
+          { time: '15:00', duration: 60, name: 'Starmoves 5+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false },
+          { time: '16:00', duration: 60, name: 'Hiphop 8+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false },
+          { time: '17:00', duration: 60, name: 'HipHop 10+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false },
+          { time: '19:00', duration: 60, name: 'Circuit Training', instructor: 'Fitness Coach', type: 'strength', onScreen: false }
+        ]
+      },
+      {
+        dayIndex: 4,
+        dayName: 'Donderdag',
+        classes: [
+          { time: '18:30', duration: 60, name: 'Spinning', instructor: 'Virtueel', type: 'cycling', onScreen: true },
+          { time: '18:30', duration: 60, name: 'PowerPump', instructor: 'Virtueel', type: 'strength', onScreen: true },
+          { time: '19:00', duration: 60, name: 'Kickboksen', instructor: 'Instructeur', type: 'combat', onScreen: false },
+          { time: '19:30', duration: 60, name: 'TotalBalance', instructor: 'Virtueel', type: 'balance', onScreen: true }
+        ]
+      },
+      {
+        dayIndex: 5,
+        dayName: 'Vrijdag',
+        classes: [
+          { time: '09:00', duration: 60, name: 'Circuit Training', instructor: 'Fitness Coach', type: 'strength', onScreen: false },
+          { time: '09:30', duration: 60, name: 'Vinyasa Yoga', instructor: 'Yoga Docent', type: 'balance', onScreen: false }
+        ]
+      },
+      {
+        dayIndex: 6,
+        dayName: 'Zaterdag',
+        classes: [
+          { time: '10:00', duration: 60, name: 'Danskriebels 2+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false },
+          { time: '10:45', duration: 60, name: 'Starmoves 5+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false },
+          { time: '11:45', duration: 60, name: 'Hiphop 8+', instructor: 'By All Stars Movement', type: 'kids', onScreen: false }
+        ]
+      },
+      {
+        dayIndex: 0,
+        dayName: 'Zondag',
+        classes: [
+          { time: '09:30', duration: 60, name: 'PowerPump', instructor: 'Virtueel', type: 'strength', onScreen: true },
+          { time: '10:00', duration: 60, name: 'Spinning', instructor: 'Virtueel', type: 'cycling', onScreen: true }
+        ]
+      }
+    ];
+
+    // Helper styling map by activity category
+    const classTheme = {
+      cycling: { icon: 'fa-person-biking', color: 'from-blue-600 to-cyan-500', badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+      strength: { icon: 'fa-dumbbell', color: 'from-rose-600 to-brand-magenta', badgeColor: 'text-pink-400 bg-pink-500/10 border-pink-500/30' },
+      hyrox: { icon: 'fa-fire-flame-curved', color: 'from-amber-500 to-orange-600', badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+      dance: { icon: 'fa-music', color: 'from-fuchsia-600 to-purple-500', badgeColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+      kids: { icon: 'fa-children', color: 'from-amber-500 to-orange-500', badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+      balance: { icon: 'fa-spa', color: 'from-emerald-600 to-teal-500', badgeColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+      combat: { icon: 'fa-hand-fist', color: 'from-red-600 to-orange-600', badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30' }
+    };
+
+    // State
+    let simulationDay = null; // if null, uses actual current day
+    let forceLiveSim = false; // toggle for testing the "Nu aan de gang" state
+
+    function getCurrentTargetDay() {
+      const now = new Date();
+      return simulationDay !== null ? simulationDay : now.getDay();
+    }
+
+    // Bereken het live resterende tijdsverschil tot aan de eerstvolgende les
+    function getCountdownString(targetTimeStr) {
+      const now = new Date();
+      const [cHours, cMinutes] = targetTimeStr.split(':').map(Number);
+      const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), cHours, cMinutes, 0);
+      
+      let diffMs = targetDate.getTime() - now.getTime();
+      if (diffMs <= 0) {
+        return '00m 00s';
+      }
+      
+      const totalSec = Math.floor(diffMs / 1000);
+      const hrs = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      
+      const pad = (n) => n.toString().padStart(2, '0');
+      if (hrs > 0) {
+        return `${hrs}u ${pad(mins)}m ${pad(secs)}s`;
+      }
+      return `${mins}m ${pad(secs)}s`;
+    }
+
+    // Zoek de eerstvolgende les die nog moet beginnen
+    function getNextUpcomingClass(classes, isActualDay) {
+      if (!classes || classes.length === 0) return null;
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+
+      if (isActualDay) {
+        return classes.find(c => {
+          const [h, m] = c.time.split(':').map(Number);
+          return (h * 60 + m) > currentMin;
+        }) || null;
+      } else {
+        // In demo / testmodus: zoek de eerstvolgende of toon de eerste les van die dag
+        const found = classes.find(c => {
+          const [h, m] = c.time.split(':').map(Number);
+          return (h * 60 + m) > currentMin;
+        });
+        return found || classes[0];
+      }
+    }
+
+    function getClassStatus(classItem, isNextUpcoming, isActualDay) {
+      const now = new Date();
+      const [cHours, cMinutes] = classItem.time.split(':').map(Number);
+      const startMin = cHours * 60 + cMinutes;
+      const duration = classItem.duration || 60;
+      const endMin = startMin + duration;
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+
+      // Check of de les nu actief bezig is (of gesimuleerd actief)
+      const isCurrentlyActive = (isActualDay && currentMin >= startMin && currentMin < endMin) || 
+                                (forceLiveSim && isNextUpcoming);
+
+      if (isCurrentlyActive) {
+        // Bereken live resterende tijd en voortgangsbalk
+        const simulatedCurrent = forceLiveSim ? (startMin + Math.floor(duration * 0.45)) : currentMin;
+        const elapsed = Math.max(0, simulatedCurrent - startMin);
+        const remaining = Math.max(1, endMin - simulatedCurrent);
+        const progressPct = Math.min(100, Math.max(5, Math.round((elapsed / duration) * 100)));
+
+        return { 
+          status: 'LIVE', 
+          label: 'NU AAN DE GANG', 
+          elapsed: elapsed,
+          remaining: remaining,
+          progressPct: progressPct,
+          color: 'bg-emerald-500/25 border-2 border-emerald-400 text-emerald-300 shadow-lg shadow-emerald-500/40' 
+        };
+      }
+
+      // Als de les al voorbij is
+      if (isActualDay && currentMin >= endMin && !forceLiveSim) {
+        return { 
+          status: 'ENDED', 
+          label: 'Afgelopen', 
+          color: 'bg-slate-900/60 text-slate-500 border border-white/5' 
+        };
+      }
+
+      // Alleen de EERSTVOLGENDE les krijgt een live aftellende timer
+      if (isNextUpcoming) {
+        const countdown = getCountdownString(classItem.time);
+        return { 
+          status: 'COUNTDOWN', 
+          label: `Start over ${countdown}`, 
+          color: 'bg-brand-cyan/20 border-2 border-brand-cyan text-brand-cyan shadow-lg shadow-brand-cyan/30' 
+        };
+      }
+
+      // Alle overige toekomstige lessen blijven op 'Ingepland' staan
+      return { 
+        status: 'UPCOMING', 
+        label: 'Ingepland', 
+        color: 'bg-slate-800/80 text-slate-300 border border-white/10 font-bold' 
+      };
+    }
+
+    function renderTodaySection() {
+      const targetDayIndex = getCurrentTargetDay();
+      const dayData = scheduleData.find(d => d.dayIndex === targetDayIndex) || { dayName: 'Onbekend', classes: [] };
+      const container = document.getElementById('todayClassesContainer');
+      const subtext = document.getElementById('todaySubtext');
+      const badge = document.getElementById('activeDayBadge');
+
+      const isActualDay = simulationDay === null || simulationDay === (new Date().getDay());
+      subtext.textContent = `Lessen voor ${dayData.dayName.toLowerCase()} ${isActualDay ? '(Vandaag)' : '(Demo Modus)'}`;
+      badge.textContent = dayData.dayName;
+
+      container.innerHTML = '';
+
+      if (!dayData.classes || dayData.classes.length === 0) {
+        container.innerHTML = `
+          <div class="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-white/10 rounded-2xl">
+            <i class="fa-solid fa-calendar-xmark text-6xl text-slate-600 mb-4"></i>
+            <h3 class="text-3xl font-black text-slate-200">Geen vaste groepslessen</h3>
+            <p class="text-lg text-slate-400 mt-2 max-w-sm">Op deze dag staan geen instructeurlessen gepland. De fitnesszaal en on-screen zalen zijn 24/7 beschikbaar.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const nextUpcomingClass = getNextUpcomingClass(dayData.classes, isActualDay);
+
+      dayData.classes.forEach(item => {
+        const styleInfo = classTheme[item.type] || classTheme.strength;
+        const isNextUpcoming = (nextUpcomingClass === item);
+        const status = getClassStatus(item, isNextUpcoming, isActualDay);
+        const isLive = status.status === 'LIVE';
+
+        const card = document.createElement('div');
+        card.className = `p-2 rounded-xl border transition-all duration-300 ${
+          isLive 
+            ? 'glass-panel-live live-pulse-glow z-10' 
+            : isNextUpcoming
+              ? 'bg-slate-900/95 border-brand-cyan ring-1 ring-brand-cyan/40 shadow-lg shadow-brand-cyan/20'
+              : 'bg-slate-900/80 border-white/10 hover:border-white/20'
+        }`;
+
+        let chip;
+        if (isLive) {
+          chip = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[13px] font-mono font-black uppercase whitespace-nowrap ${status.color}">
+                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
+                    ${status.label} · nog ${status.remaining} min</span>`;
+        } else if (isNextUpcoming) {
+          chip = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[13px] font-mono font-black uppercase whitespace-nowrap ${status.color}"><i class="fa-solid fa-stopwatch animate-pulse"></i>${status.label}</span>`;
+        } else {
+          chip = `<span class="px-2 py-0.5 rounded-md text-[13px] font-bold uppercase whitespace-nowrap ${status.color}">${status.label}</span>`;
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br ${isLive ? 'from-emerald-500 to-teal-400 ring-2 ring-emerald-300' : styleInfo.color} flex items-center justify-center shadow-md text-white text-lg shrink-0">
+              <i class="fa-solid ${styleInfo.icon}"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline gap-2 leading-tight">
+                <span class="text-2xl font-black font-display tracking-tight ${isLive ? 'text-emerald-300' : 'text-white'}">${item.time}</span>
+                <h3 class="text-lg font-extrabold ${isLive ? 'text-emerald-100' : 'text-white'} truncate">${item.name}</h3>
+                ${item.onScreen ? `<i class="fa-solid fa-tv text-sm text-brand-cyan shrink-0"></i>` : ''}
+              </div>
+              <div class="flex items-center justify-between gap-2 mt-0.5">
+                <span class="text-sm ${isLive ? 'text-emerald-300' : 'text-slate-300'} font-semibold truncate"><i class="fa-solid fa-user-tie text-xs mr-1 ${isLive ? 'text-emerald-400' : 'text-brand-magenta'}"></i>${item.instructor}</span>
+                ${isLive ? '' : chip}
+              </div>
+            </div>
+          </div>
+          ${isLive ? `<div class="mt-1.5 flex flex-col gap-1">${chip}<div class="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden border border-emerald-500/40"><div class="h-full bg-gradient-to-r from-emerald-500 to-teal-300 rounded-full" style="width: ${status.progressPct}%"></div></div></div>` : ''}
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function renderWeekGrid() {
+      const container = document.getElementById('weekGridContainer');
+      const targetDayIndex = getCurrentTargetDay();
+      const isActualDay = simulationDay === null || simulationDay === (new Date().getDay());
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+
+      container.innerHTML = '';
+
+      // Custom order starting Monday (1 to 6 then 0)
+      const orderedDays = [1, 2, 3, 4, 5, 6, 0];
+
+      orderedDays.forEach(dayIdx => {
+        const dayData = scheduleData.find(d => d.dayIndex === dayIdx);
+        if (!dayData) return;
+
+        const isToday = dayIdx === targetDayIndex;
+        const colCard = document.createElement('div');
+        colCard.className = `glass-panel rounded-xl p-2 min-w-0 flex flex-col transition-all ${dayIdx === 0 ? 'col-span-2' : ''} ${
+          isToday 
+            ? 'border border-brand-magenta bg-brand-magenta/15 ring-1 ring-brand-magenta/40 shadow-xl shadow-brand-magenta/20' 
+            : 'border border-white/10 hover:border-white/20'
+        }`;
+
+        let classesHtml = '';
+        if (dayData.classes.length === 0) {
+          classesHtml = `<p class="text-sm text-slate-500 italic py-1 font-medium">Geen vaste lessen</p>`;
+        } else {
+          classesHtml = dayData.classes.map(c => {
+            const [cH, cM] = c.time.split(':').map(Number);
+            const startM = cH * 60 + cM;
+            const endM = startM + (c.duration || 60);
+
+            // Is deze les in het weekoverzicht nu aan de gang?
+            const isThisClassLive = isToday && (
+              (isActualDay && currentMin >= startM && currentMin < endM) ||
+              (forceLiveSim && dayData.classes[0] === c)
+            );
+
+            let dotColor = 'bg-brand-magenta';
+            if (c.onScreen) dotColor = 'bg-brand-cyan';
+            if (c.type === 'hyrox') dotColor = 'bg-amber-400';
+
+            return `
+              <div class="py-px border-b border-white/10 last:border-0 ${isThisClassLive ? 'bg-emerald-500/20 px-1.5 rounded-lg border-emerald-500/40 text-emerald-200' : ''}">
+                <div class="flex items-start gap-1.5 leading-tight">
+                  ${isThisClassLive ? `
+                    <span class="relative flex h-2 w-2 mt-[5px] shrink-0">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                  ` : `
+                    <span class="w-2 h-2 mt-[5px] rounded-full shrink-0 ${dotColor} shadow-sm"></span>
+                  `}
+                  <div class="min-w-0">
+                    <div class="font-black text-[13px] leading-tight ${isThisClassLive ? 'text-emerald-300' : 'text-brand-cyan'}">${c.time}</div>
+                    <div class="font-extrabold text-[15px] leading-tight ${isThisClassLive ? 'text-emerald-200' : 'text-slate-100'}">${c.name}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        colCard.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between pb-1 mb-0.5 border-b border-white/15">
+              <span class="font-display font-black text-lg tracking-wide ${isToday ? 'text-brand-magenta' : 'text-slate-100'}">
+                ${dayData.dayName}
+              </span>
+              ${isToday
+                ? `<span class="text-sm font-black uppercase px-1.5 rounded bg-brand-magenta text-white shadow-sm shadow-brand-magenta/40">Nu</span>`
+                : ''}
+            </div>
+            <div class="${dayIdx === 0 ? 'grid grid-cols-2 gap-x-3' : ''}">
+              ${classesHtml}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(colCard);
+      });
+    }
+
+    function buildTestButtons() {
+      const container = document.getElementById('testDayButtons');
+      container.innerHTML = '';
+      const days = [
+        { idx: 1, name: 'Maandag' },
+        { idx: 2, name: 'Dinsdag' },
+        { idx: 3, name: 'Woensdag' },
+        { idx: 4, name: 'Donderdag' },
+        { idx: 5, name: 'Vrijdag' },
+        { idx: 6, name: 'Zaterdag' },
+        { idx: 0, name: 'Zondag' }
+      ];
+
+      days.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'p-2 rounded bg-slate-800 hover:bg-slate-700 text-left border border-white/10 text-xs font-semibold text-slate-200 transition';
+        btn.textContent = d.name;
+        btn.onclick = () => {
+          simulationDay = d.idx;
+          renderTodaySection();
+          renderWeekGrid();
+          toggleDaySelectorModal();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleDaySelectorModal() {
+      const modal = document.getElementById('daySelectorModal');
+      modal.classList.toggle('hidden');
+    }
+
+    function toggleSimulatedLiveClass() {
+      forceLiveSim = !forceLiveSim;
+      const btnText = document.getElementById('simLiveBtnText');
+      if (btnText) {
+        btnText.textContent = forceLiveSim ? 'STOP SIMULATIE "NU AAN DE GANG"' : 'SIMULEER LES "NU AAN DE GANG"';
+      }
+      renderTodaySection();
+      renderWeekGrid();
+    }
+
+    function resetToActualToday() {
+      simulationDay = null;
+      forceLiveSim = false;
+      const btnText = document.getElementById('simLiveBtnText');
+      if (btnText) {
+        btnText.textContent = 'SIMULEER LES "NU AAN DE GANG"';
+      }
+      renderTodaySection();
+      renderWeekGrid();
+      toggleDaySelectorModal();
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn("Fullscreen request error", err);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    window.onload = function() {
+      // Direct renderen
+      renderTodaySection();
+      renderWeekGrid();
+      buildTestButtons();
+
+      // Update de countdown en lesstatussen elke seconde live (zonder vertraging)
+      setInterval(() => {
+        renderTodaySection();
+      }, 1000);
+
+      // Her-render weekrooster elke minuut
+      setInterval(() => {
+        renderWeekGrid();
+      }, 60000);
+
+      // Schaal het vaste 960x540 canvas naar het venster
+      function fitStage() {
+        const k = Math.min(window.innerWidth / 960, window.innerHeight / 540);
+        document.getElementById('stage').style.transform = `translate(-50%, -50%) scale(${k})`;
+      }
+      fitStage();
+      window.addEventListener('resize', fitStage);
+
+      // Sneltoetsen voor narrowcasting (D = Dag Testen, F = Volledig Scherm)
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'd' || e.key === 'D') {
+          toggleDaySelectorModal();
+        } else if (e.key === 'f' || e.key === 'F') {
+          toggleFullScreen();
+        }
+      });
+    };
+  </script>
+</body>
+</html>
