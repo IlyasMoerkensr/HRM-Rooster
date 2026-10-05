@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rooster Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0e1a; --panel: #131a2e; --panel2: #1a2340; --line: rgba(255,255,255,.1);
+      --text: #f1f5f9; --muted: #94a3b8; --magenta: #ff007f; --cyan: #00f0ff; --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header.top { position: sticky; top: 0; z-index: 10; background: rgba(11,14,26,.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+    .bar { max-width: 960px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 1.15rem; margin: 0; flex: 1; min-width: 160px; }
+    h1 span { color: var(--magenta); }
+    .status { font-size: .9rem; color: var(--muted); }
+    .status.dirty { color: var(--amber); font-weight: 600; }
+    .status.ok { color: var(--green); font-weight: 600; }
+    .status.err { color: var(--red); font-weight: 600; }
+    button, .btn { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel2); color: var(--text); padding: 8px 14px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    button:hover, .btn:hover { border-color: rgba(255,255,255,.35); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .primary { background: var(--magenta); border-color: var(--magenta); font-weight: 700; }
+    .primary:disabled { background: var(--panel2); border-color: var(--line); }
+    main { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    .card h2 { margin: 0 0 4px; font-size: 1.05rem; }
+    .hint { color: var(--muted); font-size: .88rem; margin: 0 0 12px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+    label.f { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
+    input[type=text], input[type=password], input[type=time], input[type=number], select {
+      width: 100%; font: inherit; color: var(--text); background: #0b1224; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px;
+    }
+    input:focus, select:focus { outline: 2px solid var(--cyan); outline-offset: 0; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+    .tab { flex: 1; min-width: 74px; text-align: center; justify-content: center; flex-direction: column; gap: 0; padding: 8px 6px; }
+    .tab small { color: var(--muted); font-size: .75rem; }
+    .tab.active { background: rgba(255,0,127,.18); border-color: var(--magenta); }
+    .tab.today::after { content: "vandaag"; font-size: .65rem; color: var(--cyan); }
+    .row { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px;
+           display: grid; grid-template-columns: 120px 1fr 1fr; gap: 10px; align-items: end; }
+    .row .wide { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .row .opts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr 1fr; } .row .name { grid-column: 1 / -1; } }
+    .chk { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-size: .95rem; }
+    .chk input { width: 20px; height: 20px; accent-color: var(--cyan); }
+    .dur { width: 80px; display: inline-block; }
+    .row .opts span { white-space: nowrap; }
+    .icon-btn { padding: 8px 10px; }
+    .danger:hover { border-color: var(--red); color: var(--red); }
+    .warn { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.5); color: #fde68a; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; font-size: .92rem; }
+    .empty { text-align: center; color: var(--muted); padding: 24px 8px; }
+    details summary { cursor: pointer; font-weight: 600; }
+    code { background: #0b1224; padding: 1px 6px; border-radius: 5px; font-size: .88em; }
+    .right { text-align: right; }
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bar">
+    <h1>HRM <span>Rooster</span> Dashboard</h1>
+    <span id="status" class="status">Laden…</span>
+    <a class="btn" href="index.html" target="_blank" rel="noopener">Bekijk scherm ↗</a>
+    <button id="saveBtn" class="primary" disabled>Opslaan</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Rooster bewerken -->
+  <section class="card">
+    <h2>Lessen per dag</h2>
+    <p class="hint">Pas aan wat je wilt en druk bovenaan op <b>Opslaan</b>. Het tv-scherm ververst zichzelf binnen 2 minuten.</p>
+    <div class="tabs" id="tabs"></div>
+    <div id="warn"></div>
+    <div id="rows"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px">
+      <button id="addBtn" class="primary">＋ Les toevoegen</button>
+      <button id="copyBtn">Kopieer deze dag naar…</button>
+      <select id="copyTarget" style="width:auto; display:none"></select>
+    </div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Back-up &amp; geavanceerd</summary>
+      <p class="hint" style="margin-top:10px">Download het huidige rooster als bestand, of laad een eerder opgeslagen bestand terug (daarna nog wel opslaan).</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="dlBtn">Download schedule.json</button>
+        <button id="ulBtn">Laad schedule.json uit bestand…</button>
+        <input type="file" id="ulInput" accept=".json,application/json" hidden>
+      </div>
+    </details>
+  </section>
+</main>
+
+<datalist id="nameList"></datalist>
+<datalist id="instrList"></datalist>
+
+<script>
+  const DAYS = [
+    { idx: 1, name: 'Maandag', short: 'Ma' }, { idx: 2, name: 'Dinsdag', short: 'Di' },
+    { idx: 3, name: 'Woensdag', short: 'Wo' }, { idx: 4, name: 'Donderdag', short: 'Do' },
+    { idx: 5, name: 'Vrijdag', short: 'Vr' }, { idx: 6, name: 'Zaterdag', short: 'Za' },
+    { idx: 0, name: 'Zondag', short: 'Zo' }
+  ];
+  const TYPES = {
+    cycling: 'Spinning / fietsen', strength: 'Kracht / circuit', hyrox: 'Hyrox', dance: 'Dans (Zumba e.d.)',
+    kids: 'Kinderen', balance: 'Balans / yoga', combat: 'Vechtsport'
+  };
+  const MAX_PER_DAY = 5; // meer lessen passen mogelijk niet meer op het scherm
+
+  let data = [];
+  let sha = null;
+  let dirty = false;
+  let connected = false;
+  let pinRequired = false;
+  let activeDay = new Date().getDay(); // begin op de dag van vandaag
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- status ----------
+  function setStatus(text, kind) { const s = $('status'); s.textContent = text; s.className = 'status ' + (kind || ''); }
+  function refreshStatus() {
+    $('saveBtn').disabled = !(dirty && connected);
+    if (dirty) setStatus(connected ? '● Niet-gepubliceerde wijzigingen' : '● Wijzigingen (server niet bereikbaar)', 'dirty');
+  }
+  function markDirty() { dirty = true; refreshStatus(); }
+
+  // ---------- data ----------
+  function normalize(arr) {
+    const out = DAYS.map(d => {
+      const found = (Array.isArray(arr) ? arr : []).find(x => x.dayIndex === d.idx);
+      return {
+        dayIndex: d.idx, dayName: d.name,
+        classes: (found && Array.isArray(found.classes) ? found.classes : []).map(c => ({
+          time: c.time || '09:00', duration: Number(c.duration) || 60, name: c.name || '',
+          instructor: c.instructor || '', type: TYPES[c.type] ? c.type : 'strength', onScreen: !!c.onScreen
+        }))
+      };
+    });
+    out.forEach(d => d.classes.sort((a, b) => a.time.localeCompare(b.time)));
+    return out;
+  }
+  const dayData = () => data.find(d => d.dayIndex === activeDay);
+
+  // ---------- lokale server ----------
+  const getPin = () => { try { return sessionStorage.getItem('hrmPin') || ''; } catch (e) { return ''; } };
+  const setPin = p => { try { sessionStorage.setItem('hrmPin', p); } catch (e) {} };
+
+  async function connect() {
+    setStatus('Rooster laden…');
+    try {
+      const info = await (await fetch('/api/info', { cache: 'no-store' })).json();
+      const res = await fetch('/schedule.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('schedule.json niet gevonden');
+      data = normalize(await res.json());
+      connected = true; dirty = false;
+      pinRequired = !!info.pinRequired;
+      renderAll(); setStatus('Rooster geladen', 'ok'); refreshStatus();
+    } catch (e) {
+      connected = false; refreshStatus();
+      setStatus('✖ Geen verbinding met de server. Start start.bat op de pc en open dit dashboard via het adres dat daar staat.', 'err');
+    }
+  }
+
+  async function save() {
+    data.forEach(d => d.classes.sort((a, b) => a.time.localeCompare(b.time)));
+    for (const d of data) for (const cl of d.classes) {
+      if (!cl.name.trim()) { activeDay = d.dayIndex; renderAll(); setStatus(`✖ Er staat een les zonder naam bij ${d.dayName}`, 'err'); return; }
+    }
+    if (pinRequired && !getPin()) {
+      const p = prompt('Pincode (staat in pin.txt op de pc):'); if (p === null) return; setPin(p);
+    }
+    $('saveBtn').disabled = true; setStatus('Opslaan…');
+    try {
+      const res = await fetch('/api/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pin': getPin() }, body: JSON.stringify(data) });
+      if (res.status === 401) { setPin(''); throw new Error('Pincode onjuist, probeer opnieuw'); }
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Serverfout ' + res.status);
+      dirty = false;
+      setStatus('✔ Opgeslagen — het tv-scherm pakt het binnen 2 minuten op', 'ok');
+      refreshStatus();
+    } catch (e) {
+      setStatus('✖ ' + e.message, 'err'); refreshStatus();
+    }
+  }
+
+  // ---------- weergave ----------
+  function renderTabs() {
+    const todayIdx = new Date().getDay();
+    $('tabs').innerHTML = DAYS.map(d => {
+      const n = data.find(x => x.dayIndex === d.idx)?.classes.length || 0;
+      return `<button class="tab ${d.idx === activeDay ? 'active' : ''} ${d.idx === todayIdx ? 'today' : ''}" data-day="${d.idx}"><b>${d.short}</b><small>${n} ${n === 1 ? 'les' : 'lessen'}</small></button>`;
+    }).join('');
+  }
+
+  function renderRows() {
+    const d = dayData();
+    $('warn').innerHTML = d.classes.length > MAX_PER_DAY
+      ? `<div class="warn">⚠ Er staan ${d.classes.length} lessen op deze dag. Op het scherm passen er netjes maximaal ${MAX_PER_DAY}; daarboven kan de lijst afgekapt worden.</div>` : '';
+    if (!d.classes.length) { $('rows').innerHTML = `<div class="empty">Geen lessen op ${d.dayName.toLowerCase()}.<br>Klik op “Les toevoegen”.</div>`; return; }
+    $('rows').innerHTML = d.classes.map((c, i) => `
+      <div class="row" data-i="${i}">
+        <div><label class="f">Tijd</label><input type="time" data-f="time" value="${esc(c.time)}"></div>
+        <div class="name" style="grid-column: span 2"><label class="f">Lesnaam</label><input type="text" data-f="name" list="nameList" value="${esc(c.name)}" placeholder="bijv. Spinning"></div>
+        <div style="grid-column: span 2"><label class="f">Instructeur</label><input type="text" data-f="instructor" list="instrList" value="${esc(c.instructor)}" placeholder="bijv. Virtueel"></div>
+        <div><label class="f">Soort (kleur/icoon)</label>
+          <select data-f="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === c.type ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+        <div class="wide">
+          <div class="opts">
+            <label class="chk"><input type="checkbox" data-f="onScreen" ${c.onScreen ? 'checked' : ''}> Op groot scherm (virtueel)</label>
+            <span><label class="f" style="display:inline;margin-right:6px">Duur</label><input class="dur" type="number" data-f="duration" min="15" step="5" value="${c.duration}"> min</span>
+          </div>
+          <div>
+            <button class="icon-btn" data-act="dup" title="Dupliceer">⧉ Dupliceer</button>
+            <button class="icon-btn danger" data-act="del" title="Verwijder">🗑 Verwijder</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderSuggestions() {
+    const names = new Set(), instr = new Set();
+    data.forEach(d => d.classes.forEach(c => { if (c.name) names.add(c.name); if (c.instructor) instr.add(c.instructor); }));
+    ['Virtueel'].forEach(x => instr.add(x));
+    $('nameList').innerHTML = [...names].sort().map(n => `<option value="${esc(n)}">`).join('');
+    $('instrList').innerHTML = [...instr].sort().map(n => `<option value="${esc(n)}">`).join('');
+    $('copyTarget').innerHTML = DAYS.filter(x => x.idx !== activeDay).map(x => `<option value="${x.idx}">${x.name}</option>`).join('');
+  }
+
+  function renderAll() { renderTabs(); renderRows(); renderSuggestions(); }
+
+  // ---------- events ----------
+  $('tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-day]'); if (!b) return;
+    activeDay = Number(b.dataset.day); $('copyTarget').style.display = 'none'; renderAll();
+  });
+
+  $('rows').addEventListener('input', e => {
+    const row = e.target.closest('.row'); const f = e.target.dataset.f; if (!row || !f) return;
+    const c = dayData().classes[Number(row.dataset.i)];
+    if (f === 'onScreen') c.onScreen = e.target.checked;
+    else if (f === 'duration') c.duration = Number(e.target.value) || 60;
+    else c[f] = e.target.value;
+    markDirty();
+  });
+  $('rows').addEventListener('change', e => {
+    // tijd of soort gewijzigd: opnieuw sorteren en overzicht bijwerken
+    if (e.target.dataset.f === 'time') { dayData().classes.sort((a, b) => a.time.localeCompare(b.time)); renderAll(); }
+    else if (e.target.dataset.f) renderTabs();
+  });
+  $('rows').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const i = Number(b.closest('.row').dataset.i); const list = dayData().classes;
+    if (b.dataset.act === 'del') {
+      if (!confirm(`“${list[i].name || 'Deze les'}” van ${list[i].time} verwijderen?`)) return;
+      list.splice(i, 1);
+    } else if (b.dataset.act === 'dup') list.splice(i + 1, 0, { ...list[i] });
+    markDirty(); renderAll();
+  });
+
+  $('addBtn').addEventListener('click', () => {
+    const list = dayData().classes;
+    const last = list[list.length - 1];
+    list.push({ time: last ? last.time : '19:00', duration: 60, name: '', instructor: '', type: 'strength', onScreen: false });
+    markDirty(); renderAll();
+    const names = document.querySelectorAll('#rows input[data-f=name]'); names[names.length - 1]?.focus();
+  });
+
+  $('copyBtn').addEventListener('click', () => {
+    const sel = $('copyTarget');
+    if (sel.style.display === 'none') { sel.style.display = ''; return; }
+  });
+  $('copyTarget').addEventListener('change', e => {
+    const target = data.find(d => d.dayIndex === Number(e.target.value));
+    if (!target) return;
+    if (target.classes.length && !confirm(`${target.dayName} heeft al ${target.classes.length} les(sen). Die worden vervangen. Doorgaan?`)) return;
+    target.classes = dayData().classes.map(c => ({ ...c }));
+    markDirty(); e.target.style.display = 'none'; renderAll();
+    setStatus(`Lessen gekopieerd naar ${target.dayName}`, 'ok');
+  });
+
+  $('saveBtn').addEventListener('click', save);
+
+  $('dlBtn').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' }));
+    a.download = 'schedule.json'; a.click(); URL.revokeObjectURL(a.href);
+  });
+  $('ulBtn').addEventListener('click', () => $('ulInput').click());
+  $('ulInput').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { data = normalize(JSON.parse(await f.text())); markDirty(); renderAll(); setStatus('Bestand geladen — nog niet gepubliceerd', 'dirty'); }
+    catch (err) { setStatus('✖ Ongeldig bestand', 'err'); }
+    e.target.value = '';
+  });
+
+  window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  // ---------- start ----------
+  connect();
+</script>
+</body>
+</html>
