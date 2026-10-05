@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rooster Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
       --bg: #0b0e1a; --panel: #131a2e; --panel2: #1a2340; --line: rgba(255,255,255,.1);
@@ -28,34 +29,61 @@
     .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
     .card h2 { margin: 0 0 4px; font-size: 1.05rem; }
     .hint { color: var(--muted); font-size: .88rem; margin: 0 0 12px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
     label.f { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
-    input[type=text], input[type=password], input[type=time], input[type=number], select {
+    input[type=text], input[type=time], input[type=number], input[type=date], textarea, select {
       width: 100%; font: inherit; color: var(--text); background: #0b1224; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px;
     }
-    input:focus, select:focus { outline: 2px solid var(--cyan); outline-offset: 0; }
+    textarea { resize: vertical; min-height: 64px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--cyan); outline-offset: 0; }
+    input[type=color] { width: 48px; height: 42px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: #0b1224; cursor: pointer; }
     .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
     .tab { flex: 1; min-width: 74px; text-align: center; justify-content: center; flex-direction: column; gap: 0; padding: 8px 6px; }
     .tab small { color: var(--muted); font-size: .75rem; }
     .tab.active { background: rgba(255,0,127,.18); border-color: var(--magenta); }
     .tab.today::after { content: "vandaag"; font-size: .65rem; color: var(--cyan); }
+
     .row { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px;
            display: grid; grid-template-columns: 120px 1fr 1fr; gap: 10px; align-items: end; }
-    .row .wide { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-    .row .opts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    @media (max-width: 600px) { .row { grid-template-columns: 1fr 1fr; } .row .name { grid-column: 1 / -1; } }
+    .row.cancelled { opacity: .7; border-color: rgba(239,68,68,.5); }
+    .row .span2 { grid-column: span 2; }
+    .row .full { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .opts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr 1fr; } .row .span2 { grid-column: 1 / -1; } }
     .chk { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-size: .95rem; }
     .chk input { width: 20px; height: 20px; accent-color: var(--cyan); }
     .dur { width: 80px; display: inline-block; }
-    .row .opts span { white-space: nowrap; }
+    .opts span { white-space: nowrap; }
     .icon-btn { padding: 8px 10px; }
     .danger:hover { border-color: var(--red); color: var(--red); }
+    .pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .iconpick { width: 46px; height: 42px; justify-content: center; padding: 0; font-size: 1.15rem; }
+    .iconpick.custom { border-color: var(--cyan); }
+    .sw { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); }
+    .sw:hover { border-color: #fff; }
+    .swatches { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+    .tiny { padding: 4px 8px; font-size: .8rem; border-radius: 8px; }
+
+    .exc { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
+    .exc.past { opacity: .55; }
+    .exc .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .exc .row { background: var(--panel); }
+    .tab.exctab.active { background: rgba(245,158,11,.18); border-color: var(--amber); }
     .warn { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.5); color: #fde68a; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; font-size: .92rem; }
     .empty { text-align: center; color: var(--muted); padding: 24px 8px; }
-    details summary { cursor: pointer; font-weight: 600; }
-    code { background: #0b1224; padding: 1px 6px; border-radius: 5px; font-size: .88em; }
-    .right { text-align: right; }
+    details > summary { cursor: pointer; font-weight: 600; }
+
+    .pv-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+    .pv-controls select { width: auto; }
+    .pv-box { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: #060813; }
+    .pv-box iframe { position: absolute; left: 0; top: 0; width: 960px; height: 540px; border: 0; transform-origin: 0 0; }
+
+    dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); padding: 16px; width: min(560px, calc(100vw - 24px)); }
+    dialog::backdrop { background: rgba(0,0,0,.7); }
+    .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; margin: 12px 0; max-height: 50vh; overflow: auto; }
+    .icons button { height: 52px; font-size: 1.3rem; justify-content: center; padding: 0; }
+    .icons button.sel { border-color: var(--magenta); background: rgba(255,0,127,.2); }
   </style>
 </head>
 <body>
@@ -71,24 +99,77 @@
 
 <main>
 
+  <!-- Live voorbeeld -->
+  <section class="card">
+    <details id="pvDetails" open>
+      <summary>Live voorbeeld van het tv-scherm</summary>
+      <div class="pv-controls">
+        <label class="f" style="margin:0">Toon dag:</label>
+        <select id="pvDay"></select>
+        <button id="pvAnn" class="tiny">Toon mededeling</button>
+        <span class="hint" style="margin:0">Wijzigingen zie je hier meteen, ook vóór je opslaat.</span>
+      </div>
+      <div class="pv-box" id="pvBox"><iframe id="pvFrame" src="index.html?preview=1" title="Voorbeeld"></iframe></div>
+    </details>
+  </section>
+
   <!-- Rooster bewerken -->
   <section class="card">
     <h2>Lessen per dag</h2>
-    <p class="hint">Pas aan wat je wilt en druk bovenaan op <b>Opslaan</b>. Het tv-scherm ververst zichzelf binnen 2 minuten.</p>
+    <p class="hint">Pas aan wat je wilt en druk bovenaan op <b>Opslaan</b>. Het tv-scherm ververst zichzelf binnen 2 minuten. Onder <b>Uitz.</b> zet je een uitzondering of een eenmalige wijziging (vervangende instructeur, andere tijd) op één specifieke datum.</p>
     <div class="tabs" id="tabs"></div>
     <div id="warn"></div>
     <div id="rows"></div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px">
+    <div id="dayButtons" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px">
       <button id="addBtn" class="primary">＋ Les toevoegen</button>
       <button id="copyBtn">Kopieer deze dag naar…</button>
       <select id="copyTarget" style="width:auto; display:none"></select>
     </div>
   </section>
 
+  <!-- Scherm-instellingen -->
+  <section class="card">
+    <h2>Kleuren van het scherm</h2>
+    <p class="hint">Twee hoofdkleuren bepalen de rand, kopjes, tijden en markeringen. Een kleur of icoon per les stel je hierboven bij elke les in.</p>
+    <div class="grid2">
+      <div>
+        <label class="f">Hoofdkleur 1 (vandaag, koppen links)</label>
+        <div class="pick"><input type="color" id="acc1"><span id="acc1Sw" class="swatches" style="margin:0"></span></div>
+      </div>
+      <div>
+        <label class="f">Hoofdkleur 2 (tijden, weekrooster)</label>
+        <div class="pick"><input type="color" id="acc2"><span id="acc2Sw" class="swatches" style="margin:0"></span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px"><button id="accReset" class="tiny">Standaardkleuren terugzetten</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Extra's op het scherm</h2>
+    <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="showClock"> Klok en datum tonen (rechtsboven bij het weekrooster)</label><br>
+    <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="heroEnabled"> Eerstvolgende les groot in beeld, met aftelklok</label>
+    <div style="max-width:320px"><label class="f" for="heroWithin">…vanaf hoeveel minuten voor de start?</label><input type="number" id="heroWithin" min="5" step="5"></div>
+    <p class="hint" style="margin-top:10px">Afgelopen lessen worden op het scherm als dunne regel getoond, zodat er ruimte blijft voor wat nog komt.</p>
+  </section>
+
+  <section class="card">
+    <h2>Mededeling op het scherm</h2>
+    <p class="hint">Een grote melding over het hele scherm, die op gezette tijden even verschijnt (bijv. “Zaterdag gesloten”, “Nieuwe les: Boxfit!”).</p>
+    <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="annEnabled"> Mededeling tonen</label>
+    <div><label class="f" for="annText">Tekst</label><textarea id="annText" maxlength="140" placeholder="bijv. Zaterdag 12 oktober gesloten"></textarea></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label class="f">Kleur &amp; icoon</label>
+        <div class="pick"><input type="color" id="annColor"><button id="annIcon" class="iconpick" title="Kies icoon"></button><span id="annSw" class="swatches" style="margin:0"></span></div></div>
+      <div><label class="f" for="annUntil">Tonen t/m (optioneel)</label><input type="date" id="annUntil"></div>
+      <div><label class="f" for="annEvery">Verschijnt elke … seconden (min. 10)</label><input type="number" id="annEvery" min="10" step="5"></div>
+      <div><label class="f" for="annShow">Blijft zichtbaar … seconden (min. 3)</label><input type="number" id="annShow" min="3" step="1"></div>
+    </div>
+  </section>
+
   <section class="card">
     <details>
       <summary>Back-up &amp; geavanceerd</summary>
-      <p class="hint" style="margin-top:10px">Download het huidige rooster als bestand, of laad een eerder opgeslagen bestand terug (daarna nog wel opslaan).</p>
+      <p class="hint" style="margin-top:10px">Download het huidige rooster (inclusief kleuren en mededeling) als bestand, of laad een eerder bestand terug (daarna nog wel opslaan).</p>
       <div style="display:flex; gap:8px; flex-wrap:wrap">
         <button id="dlBtn">Download schedule.json</button>
         <button id="ulBtn">Laad schedule.json uit bestand…</button>
@@ -97,6 +178,15 @@
     </details>
   </section>
 </main>
+
+<dialog id="iconDlg">
+  <b id="iconDlgTitle">Kies een icoon</b>
+  <div class="icons" id="iconGrid"></div>
+  <div style="display:flex; gap:8px; justify-content:space-between">
+    <button id="iconDefault">Standaard (volgens soort)</button>
+    <button id="iconCancel">Annuleer</button>
+  </div>
+</dialog>
 
 <datalist id="nameList"></datalist>
 <datalist id="instrList"></datalist>
@@ -112,44 +202,100 @@
     cycling: 'Spinning / fietsen', strength: 'Kracht / circuit', hyrox: 'Hyrox', dance: 'Dans (Zumba e.d.)',
     kids: 'Kinderen', balance: 'Balans / yoga', combat: 'Vechtsport'
   };
-  const MAX_PER_DAY = 5; // meer lessen passen mogelijk niet meer op het scherm
+  // Standaard icoon en kleur per soort (gelijk aan het tv-scherm)
+  const TYPE_ICON = { cycling: 'person-biking', strength: 'dumbbell', hyrox: 'fire-flame-curved', dance: 'music', kids: 'children', balance: 'spa', combat: 'hand-fist' };
+  const TYPE_COLOR = { cycling: '#06b6d4', strength: '#ff007f', hyrox: '#f97316', dance: '#a855f7', kids: '#f59e0b', balance: '#14b8a6', combat: '#ef4444' };
+  const ICONS = ['dumbbell', 'weight-hanging', 'person-running', 'person-walking', 'person-biking', 'bicycle', 'person-swimming', 'person-skiing',
+    'heart-pulse', 'heart', 'fire', 'fire-flame-curved', 'bolt', 'trophy', 'medal', 'stopwatch', 'bullseye', 'hand-fist', 'shield-halved', 'crown',
+    'star', 'gem', 'rocket', 'flag-checkered', 'music', 'drum', 'guitar', 'microphone', 'headphones', 'hands-clapping', 'face-smile', 'children',
+    'child-reaching', 'user-group', 'users', 'person', 'spa', 'yin-yang', 'leaf', 'person-praying', 'hand-peace', 'wind', 'droplet', 'snowflake',
+    'sun', 'moon', 'mountain', 'futbol', 'basketball', 'volleyball', 'table-tennis-paddle-ball', 'apple-whole', 'mug-hot', 'bell', 'bullhorn', 'gift',
+    'cake-candles', 'champagne-glasses', 'calendar-xmark', 'triangle-exclamation'];
+  const PRESETS = ['#ff007f', '#00f0ff', '#ff4d00', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6'];
+  const DEFAULT_SETTINGS = { accent1: '#ff007f', accent2: '#00f0ff', showClock: true, nextHero: { enabled: true, withinMin: 120 }, announcement: { enabled: false, text: '', icon: 'bullhorn', color: '#ff007f', everySec: 45, showSec: 12, until: '' } };
+  const MAX_PER_DAY = 5;
 
+  const MODES = { closed: 'Gesloten (geen lessen)', replace: 'Andere lessen (vervangt de hele dag)', extra: 'Extra lessen erbij' };
   let data = [];
-  let sha = null;
-  let dirty = false;
-  let connected = false;
-  let pinRequired = false;
-  let activeDay = new Date().getDay(); // begin op de dag van vandaag
+  let exceptions = [];
+  let substitutions = [];
+  let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  let dirty = false, connected = false, pinRequired = false;
+  let activeDay = new Date().getDay();
+  let previewDay = null, previewAnn = false;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isHex = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+  const isIcon = i => typeof i === 'string' && /^[a-z0-9-]+$/.test(i);
 
   // ---------- status ----------
   function setStatus(text, kind) { const s = $('status'); s.textContent = text; s.className = 'status ' + (kind || ''); }
   function refreshStatus() {
     $('saveBtn').disabled = !(dirty && connected);
-    if (dirty) setStatus(connected ? '● Niet-gepubliceerde wijzigingen' : '● Wijzigingen (server niet bereikbaar)', 'dirty');
+    if (dirty) setStatus(connected ? '● Niet-opgeslagen wijzigingen' : '● Wijzigingen (server niet bereikbaar)', 'dirty');
   }
-  function markDirty() { dirty = true; refreshStatus(); }
+  function markDirty() { dirty = true; refreshStatus(); schedulePreview(); }
 
   // ---------- data ----------
-  function normalize(arr) {
+  function normSettings(s) {
+    const d = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); s = s && typeof s === 'object' ? s : {};
+    if (isHex(s.accent1)) d.accent1 = s.accent1;
+    if (isHex(s.accent2)) d.accent2 = s.accent2;
+    d.showClock = s.showClock !== false;
+    const h = s.nextHero && typeof s.nextHero === 'object' ? s.nextHero : {};
+    d.nextHero = { enabled: h.enabled !== false, withinMin: Math.max(5, Number(h.withinMin) || 120) };
+    const a = s.announcement && typeof s.announcement === 'object' ? s.announcement : {};
+    d.announcement = {
+      enabled: !!a.enabled, text: String(a.text || ''), icon: isIcon(a.icon) ? a.icon : 'bullhorn',
+      color: isHex(a.color) ? a.color : d.accent1, everySec: Math.max(10, Number(a.everySec) || 45),
+      showSec: Math.max(3, Number(a.showSec) || 12), until: /^\d{4}-\d{2}-\d{2}$/.test(a.until || '') ? a.until : ''
+    };
+    return d;
+  }
+  function normalizeClass(c) {
+    return {
+      time: /^\d{2}:\d{2}$/.test(c.time || '') ? c.time : '09:00', duration: Number(c.duration) || 60, name: c.name || '', instructor: c.instructor || '',
+      type: TYPES[c.type] ? c.type : 'strength', onScreen: !!c.onScreen,
+      icon: isIcon(c.icon) ? c.icon : '', color: isHex(c.color) ? c.color : '', cancelled: !!c.cancelled
+    };
+  }
+  function normalizeDays(arr) {
     const out = DAYS.map(d => {
       const found = (Array.isArray(arr) ? arr : []).find(x => x.dayIndex === d.idx);
-      return {
-        dayIndex: d.idx, dayName: d.name,
-        classes: (found && Array.isArray(found.classes) ? found.classes : []).map(c => ({
-          time: c.time || '09:00', duration: Number(c.duration) || 60, name: c.name || '',
-          instructor: c.instructor || '', type: TYPES[c.type] ? c.type : 'strength', onScreen: !!c.onScreen
-        }))
-      };
+      return { dayIndex: d.idx, dayName: d.name, classes: (found && Array.isArray(found.classes) ? found.classes : []).map(normalizeClass) };
     });
     out.forEach(d => d.classes.sort((a, b) => a.time.localeCompare(b.time)));
     return out;
   }
-  const dayData = () => data.find(d => d.dayIndex === activeDay);
+  function normExceptions(arr) {
+    return (Array.isArray(arr) ? arr : []).filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')).map(e => ({
+      date: e.date, mode: MODES[e.mode] ? e.mode : 'closed', label: String(e.label || '').slice(0, 40),
+      classes: (Array.isArray(e.classes) ? e.classes : []).map(normalizeClass).sort((a, b) => a.time.localeCompare(b.time))
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }
 
-  // ---------- lokale server ----------
+  function normSubstitutions(arr) {
+    return (Array.isArray(arr) ? arr : []).filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') && typeof x.matchTime === 'string').map(x => ({
+      date: x.date, matchTime: x.matchTime, matchName: String(x.matchName || ''), instructor: String(x.instructor || ''),
+      name: String(x.name || ''), time: /^\d{2}:\d{2}$/.test(x.time || '') ? x.time : '', cancelled: !!x.cancelled
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }
+  function parseSchedule(raw) {
+    const isList = Array.isArray(raw);
+    data = normalizeDays(isList ? raw : (raw && raw.days));
+    settings = normSettings(isList ? {} : (raw && raw.settings));
+    exceptions = normExceptions(isList ? [] : (raw && raw.exceptions));
+    substitutions = normSubstitutions(isList ? [] : (raw && raw.substitutions));
+  }
+  const payload = () => ({ version: 2, settings, exceptions, substitutions, days: data });
+  const dayData = () => data.find(d => d.dayIndex === activeDay);
+  const ctxList = ctx => ctx === 'day' ? dayData().classes : exceptions[Number(ctx.slice(1))].classes;
+  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const fmtDate = ds => new Date(ds + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const newClass = time => ({ time: time || '19:00', duration: 60, name: '', instructor: '', type: 'strength', onScreen: false, icon: '', color: '', cancelled: false });
+
+  // ---------- server ----------
   const getPin = () => { try { return sessionStorage.getItem('hrmPin') || ''; } catch (e) { return ''; } };
   const setPin = p => { try { sessionStorage.setItem('hrmPin', p); } catch (e) {} };
 
@@ -159,13 +305,12 @@
       const info = await (await fetch('/api/info', { cache: 'no-store' })).json();
       const res = await fetch('/schedule.json?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('schedule.json niet gevonden');
-      data = normalize(await res.json());
-      connected = true; dirty = false;
-      pinRequired = !!info.pinRequired;
+      parseSchedule(await res.json());
+      connected = true; dirty = false; pinRequired = !!info.pinRequired;
       renderAll(); setStatus('Rooster geladen', 'ok'); refreshStatus();
     } catch (e) {
       connected = false; refreshStatus();
-      setStatus('✖ Geen verbinding met de server. Start start.bat op de pc en open dit dashboard via het adres dat daar staat.', 'err');
+      setStatus('✖ Geen verbinding met de server. Open dit dashboard via het adres van de rooster-server.', 'err');
     }
   }
 
@@ -174,128 +319,323 @@
     for (const d of data) for (const cl of d.classes) {
       if (!cl.name.trim()) { activeDay = d.dayIndex; renderAll(); setStatus(`✖ Er staat een les zonder naam bij ${d.dayName}`, 'err'); return; }
     }
-    if (pinRequired && !getPin()) {
-      const p = prompt('Pincode (staat in pin.txt op de pc):'); if (p === null) return; setPin(p);
+    for (const ex of exceptions) {
+      if (!ex.date) { activeDay = 'exc'; renderAll(); setStatus('✖ Een uitzondering heeft geen datum', 'err'); return; }
+      if (ex.mode !== 'closed' && ex.classes.some(c => !c.name.trim())) { activeDay = 'exc'; renderAll(); setStatus(`✖ Er staat een les zonder naam bij de uitzondering van ${ex.date}`, 'err'); return; }
     }
+    if (substitutions.some(x => !x.date)) { activeDay = 'exc'; renderAll(); setStatus('✖ Een eenmalige wijziging heeft geen datum', 'err'); return; }
+    if (pinRequired && !getPin()) { const p = prompt('Pincode (staat in pin.txt op de server):'); if (p === null) return; setPin(p); }
     $('saveBtn').disabled = true; setStatus('Opslaan…');
     try {
-      const res = await fetch('/api/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pin': getPin() }, body: JSON.stringify(data) });
+      const res = await fetch('/api/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pin': getPin() }, body: JSON.stringify(payload()) });
       if (res.status === 401) { setPin(''); throw new Error('Pincode onjuist, probeer opnieuw'); }
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Serverfout ' + res.status);
       dirty = false;
       setStatus('✔ Opgeslagen — het tv-scherm pakt het binnen 2 minuten op', 'ok');
       refreshStatus();
-    } catch (e) {
-      setStatus('✖ ' + e.message, 'err'); refreshStatus();
-    }
+    } catch (e) { setStatus('✖ ' + e.message, 'err'); refreshStatus(); }
   }
 
+  // ---------- live voorbeeld ----------
+  let pvTimer = null;
+  function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(sendPreview, 120); }
+  function sendPreview() {
+    const w = $('pvFrame').contentWindow; if (!w) return;
+    w.postMessage({ type: 'hrm-preview', days: data, settings, exceptions, substitutions, simDay: previewDay, announce: previewAnn }, location.origin);
+  }
+  window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'hrm-preview-ready') sendPreview(); });
+  $('pvFrame').addEventListener('load', sendPreview);
+  new ResizeObserver(() => { $('pvFrame').style.transform = `scale(${$('pvBox').clientWidth / 960})`; }).observe($('pvBox'));
+  $('pvDay').innerHTML = '<option value="">Vandaag</option>' + DAYS.map(d => `<option value="${d.idx}">${d.name}</option>`).join('');
+  $('pvDay').addEventListener('change', e => { previewDay = e.target.value === '' ? null : Number(e.target.value); sendPreview(); });
+  $('pvAnn').addEventListener('click', () => { previewAnn = !previewAnn; $('pvAnn').textContent = previewAnn ? 'Verberg mededeling' : 'Toon mededeling'; sendPreview(); });
+
+  // ---------- icoonkiezer ----------
+  let iconCb = null;
+  function openIconPicker(current, title, allowDefault, cb) {
+    iconCb = cb; $('iconDlgTitle').textContent = title; $('iconDefault').style.display = allowDefault ? '' : 'none';
+    $('iconGrid').innerHTML = ICONS.map(n => `<button data-icon="${n}" title="${n}" class="${n === current ? 'sel' : ''}"><i class="fa-solid fa-${n}"></i></button>`).join('');
+    $('iconDlg').showModal();
+  }
+  $('iconGrid').addEventListener('click', e => { const b = e.target.closest('[data-icon]'); if (!b) return; $('iconDlg').close(); iconCb && iconCb(b.dataset.icon); });
+  $('iconDefault').addEventListener('click', () => { $('iconDlg').close(); iconCb && iconCb(''); });
+  $('iconCancel').addEventListener('click', () => $('iconDlg').close());
+
   // ---------- weergave ----------
+  const swatchHtml = (attr, id) => PRESETS.map(c => `<button class="sw" style="background:${c}" ${attr}="${id}" data-color="${c}" title="${c}"></button>`).join('');
+
   function renderTabs() {
     const todayIdx = new Date().getDay();
     $('tabs').innerHTML = DAYS.map(d => {
       const n = data.find(x => x.dayIndex === d.idx)?.classes.length || 0;
       return `<button class="tab ${d.idx === activeDay ? 'active' : ''} ${d.idx === todayIdx ? 'today' : ''}" data-day="${d.idx}"><b>${d.short}</b><small>${n} ${n === 1 ? 'les' : 'lessen'}</small></button>`;
-    }).join('');
+    }).join('') + `<button class="tab exctab ${activeDay === 'exc' ? 'active' : ''}" data-day="exc"><b>Uitz.</b><small>${exceptions.length + substitutions.length} ${exceptions.length + substitutions.length === 1 ? 'datum' : 'data'}</small></button>`;
   }
 
-  function renderRows() {
-    const d = dayData();
-    $('warn').innerHTML = d.classes.length > MAX_PER_DAY
-      ? `<div class="warn">⚠ Er staan ${d.classes.length} lessen op deze dag. Op het scherm passen er netjes maximaal ${MAX_PER_DAY}; daarboven kan de lijst afgekapt worden.</div>` : '';
-    if (!d.classes.length) { $('rows').innerHTML = `<div class="empty">Geen lessen op ${d.dayName.toLowerCase()}.<br>Klik op “Les toevoegen”.</div>`; return; }
-    $('rows').innerHTML = d.classes.map((c, i) => `
-      <div class="row" data-i="${i}">
+  function rowHtml(c, i, ctx) {
+    const iconShown = c.icon || TYPE_ICON[c.type];
+    const colorShown = c.color || TYPE_COLOR[c.type];
+    return `
+      <div class="row ${c.cancelled ? 'cancelled' : ''}" data-i="${i}" data-ctx="${ctx}">
         <div><label class="f">Tijd</label><input type="time" data-f="time" value="${esc(c.time)}"></div>
-        <div class="name" style="grid-column: span 2"><label class="f">Lesnaam</label><input type="text" data-f="name" list="nameList" value="${esc(c.name)}" placeholder="bijv. Spinning"></div>
-        <div style="grid-column: span 2"><label class="f">Instructeur</label><input type="text" data-f="instructor" list="instrList" value="${esc(c.instructor)}" placeholder="bijv. Virtueel"></div>
-        <div><label class="f">Soort (kleur/icoon)</label>
+        <div class="span2"><label class="f">Lesnaam</label><input type="text" data-f="name" list="nameList" value="${esc(c.name)}" placeholder="bijv. Spinning"></div>
+        <div class="span2"><label class="f">Instructeur</label><input type="text" data-f="instructor" list="instrList" value="${esc(c.instructor)}" placeholder="bijv. Virtueel"></div>
+        <div><label class="f">Soort</label>
           <select data-f="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === c.type ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-        <div class="wide">
+        <div class="span2"><label class="f">Icoon &amp; kleur ${c.icon || c.color ? '<span style="color:var(--cyan)">(eigen keuze)</span>' : '(standaard van soort)'}</label>
+          <div class="pick">
+            <button class="iconpick ${c.icon ? 'custom' : ''}" data-act="icon" title="Kies icoon"><i class="fa-solid fa-${iconShown}"></i></button>
+            <input type="color" data-f="color" value="${colorShown}" title="Kies kleur">
+            <button class="tiny" data-act="resetlook" title="Terug naar standaard van soort">↺ standaard</button>
+          </div>
+          <div class="swatches">${swatchHtml('data-act="swatch" data-sw', 'x')}</div>
+        </div>
+        <div class="full">
           <div class="opts">
             <label class="chk"><input type="checkbox" data-f="onScreen" ${c.onScreen ? 'checked' : ''}> Op groot scherm (virtueel)</label>
+            <label class="chk"><input type="checkbox" data-f="cancelled" ${c.cancelled ? 'checked' : ''}> <span style="color:#fca5a5">Vervallen</span></label>
             <span><label class="f" style="display:inline;margin-right:6px">Duur</label><input class="dur" type="number" data-f="duration" min="15" step="5" value="${c.duration}"> min</span>
           </div>
           <div>
+            ${ctx === 'day' ? '<button class="icon-btn" data-act="sub" title="Alleen op één datum anders (vervanging)">↻ Eenmalig wijzigen</button>' : ''}
             <button class="icon-btn" data-act="dup" title="Dupliceer">⧉ Dupliceer</button>
             <button class="icon-btn danger" data-act="del" title="Verwijder">🗑 Verwijder</button>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+  }
+
+  function renderExceptions() {
+    const today = todayStr();
+    let html = `<p class="hint">Een uitzondering geldt alleen op die ene datum. Daarna is het weer het gewone rooster. Op het scherm zie je de uitzondering vanaf de dag zelf (en in het weekrooster van de week waarin hij valt).</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px">
+        <button class="primary" data-act="excadd">＋ Uitzondering toevoegen</button>
+        ${exceptions.some(e => e.date < today) ? '<button data-act="excclean">Verlopen uitzonderingen verwijderen</button>' : ''}
+      </div>`;
+    if (!exceptions.length) html += '<div class="empty">Geen uitzonderingen.<br>Bijvoorbeeld: “Eerste Kerstdag gesloten”.</div>';
+    exceptions.forEach((ex, k) => {
+      const past = ex.date && ex.date < today;
+      html += `<div class="exc ${past ? 'past' : ''}" data-exc="${k}">
+        <div class="head"><b>${ex.date ? fmtDate(ex.date) : 'Kies een datum'}${past ? ' <span style="color:var(--muted); font-weight:400">(voorbij)</span>' : ''}</b>
+          <button class="icon-btn danger" data-act="excdel">🗑 Verwijder uitzondering</button></div>
+        <div class="grid2">
+          <div><label class="f">Datum</label><input type="date" data-ef="date" value="${esc(ex.date)}"></div>
+          <div><label class="f">Wat gebeurt er?</label><select data-ef="mode">${Object.entries(MODES).map(([m, t]) => `<option value="${m}" ${m === ex.mode ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+          <div style="grid-column:1/-1"><label class="f">Tekst op het scherm (optioneel)</label><input type="text" data-ef="label" maxlength="40" value="${esc(ex.label)}" placeholder="${ex.mode === 'closed' ? 'bijv. Eerste Kerstdag gesloten' : 'bijv. Aangepast rooster'}"></div>
+        </div>
+        ${ex.mode === 'closed' ? '' : `<div style="margin-top:12px">
+          ${ex.classes.map((c, i) => rowHtml(c, i, 'e' + k)).join('') || '<div class="empty" style="padding:10px">Nog geen lessen.</div>'}
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="primary" data-act="excaddclass">＋ Les toevoegen</button>
+            ${ex.mode === 'replace' && ex.date ? '<button data-act="excimport">Neem lessen van het gewone rooster over</button>' : ''}
+          </div></div>`}
+      </div>`;
+    });
+    html += `<h3 style="margin:24px 0 4px; font-size:1rem">Eenmalige wijziging van een les</h3>
+      <p class="hint">Alleen op die datum: een vervangende instructeur, een andere naam of tijd, of de les vervalt. Daarna is het weer zoals normaal. Je kunt ook bij een les op de dag zelf op <b>↻ Eenmalig wijzigen</b> klikken.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px">
+        <button class="primary" data-act="subadd">＋ Eenmalige wijziging</button>
+        ${substitutions.some(x => x.date < today) ? '<button data-act="subclean">Verlopen wijzigingen verwijderen</button>' : ''}
+      </div>`;
+    if (!substitutions.length) html += '<div class="empty">Geen eenmalige wijzigingen.</div>';
+    substitutions.forEach((sb, k) => {
+      const past = sb.date && sb.date < today;
+      const wd = sb.date ? new Date(sb.date + 'T12:00:00').getDay() : null;
+      const base = wd === null ? [] : (data.find(d => d.dayIndex === wd)?.classes || []);
+      const val = c => c.time + '|' + c.name;
+      const cur = sb.matchTime + '|' + sb.matchName;
+      const found = base.some(c => val(c) === cur);
+      html += `<div class="exc ${past ? 'past' : ''}" data-sub="${k}">
+        <div class="head"><b>${sb.date ? fmtDate(sb.date) : 'Kies een datum'}${past ? ' <span style="color:var(--muted); font-weight:400">(voorbij)</span>' : ''}</b>
+          <button class="icon-btn danger" data-act="subdel">🗑 Verwijder</button></div>
+        <div class="grid2">
+          <div><label class="f">Datum</label><input type="date" data-sf="date" value="${esc(sb.date)}"></div>
+          <div><label class="f">Welke les?</label><select data-sf="match">
+            ${found ? '' : `<option value="${esc(cur)}" selected>⚠ ${esc(sb.matchTime)} ${esc(sb.matchName)} (niet gevonden op die weekdag)</option>`}
+            ${base.map(c => `<option value="${esc(val(c))}" ${val(c) === cur ? 'selected' : ''}>${esc(c.time)} ${esc(c.name)}</option>`).join('')}</select></div>
+          <div><label class="f">Nieuwe instructeur (leeg = ongewijzigd)</label><input type="text" data-sf="instructor" list="instrList" value="${esc(sb.instructor)}" placeholder="bijv. Sanne"></div>
+          <div><label class="f">Nieuwe lesnaam (leeg = ongewijzigd)</label><input type="text" data-sf="name" list="nameList" value="${esc(sb.name)}"></div>
+          <div><label class="f">Nieuwe tijd (leeg = ongewijzigd)</label><input type="time" data-sf="time" value="${esc(sb.time)}"></div>
+          <div style="display:flex; align-items:end"><label class="chk"><input type="checkbox" data-sf="cancelled" ${sb.cancelled ? 'checked' : ''}> <span style="color:#fca5a5">Les vervalt op deze datum</span></label></div>
+        </div>
+      </div>`;
+    });
+    $('rows').innerHTML = html;
+  }
+
+  function renderRows() {
+    const isExc = activeDay === 'exc';
+    $('dayButtons').style.display = isExc ? 'none' : 'flex';
+    if (isExc) { $('warn').innerHTML = ''; renderExceptions(); return; }
+    const d = dayData();
+    $('warn').innerHTML = d.classes.length > MAX_PER_DAY
+      ? `<div class="warn">⚠ Er staan ${d.classes.length} lessen op deze dag. Op het scherm passen er netjes maximaal ${MAX_PER_DAY}; daarboven kan de lijst afgekapt worden.</div>` : '';
+    if (!d.classes.length) { $('rows').innerHTML = `<div class="empty">Geen lessen op ${d.dayName.toLowerCase()}.<br>Klik op “Les toevoegen”.</div>`; return; }
+    $('rows').innerHTML = d.classes.map((c, i) => rowHtml(c, i, 'day')).join('');
+  }
+
+  function renderSettings() {
+    $('acc1').value = settings.accent1; $('acc2').value = settings.accent2;
+    $('showClock').checked = settings.showClock; $('heroEnabled').checked = settings.nextHero.enabled; $('heroWithin').value = settings.nextHero.withinMin;
+    $('acc1Sw').innerHTML = swatchHtml('data-acc', '1'); $('acc2Sw').innerHTML = swatchHtml('data-acc', '2');
+    const a = settings.announcement;
+    $('annEnabled').checked = a.enabled; $('annText').value = a.text; $('annColor').value = a.color;
+    $('annEvery').value = a.everySec; $('annShow').value = a.showSec; $('annUntil').value = a.until;
+    $('annIcon').innerHTML = `<i class="fa-solid fa-${a.icon}"></i>`;
+    $('annSw').innerHTML = swatchHtml('data-ann', 'c');
   }
 
   function renderSuggestions() {
-    const names = new Set(), instr = new Set();
-    data.forEach(d => d.classes.forEach(c => { if (c.name) names.add(c.name); if (c.instructor) instr.add(c.instructor); }));
-    ['Virtueel'].forEach(x => instr.add(x));
+    const names = new Set(), instr = new Set(['Virtueel']);
+    data.concat(exceptions).forEach(d => d.classes.forEach(c => { if (c.name) names.add(c.name); if (c.instructor) instr.add(c.instructor); }));
     $('nameList').innerHTML = [...names].sort().map(n => `<option value="${esc(n)}">`).join('');
     $('instrList').innerHTML = [...instr].sort().map(n => `<option value="${esc(n)}">`).join('');
-    $('copyTarget').innerHTML = DAYS.filter(x => x.idx !== activeDay).map(x => `<option value="${x.idx}">${x.name}</option>`).join('');
+    $('copyTarget').innerHTML = '<option value="">Kies dag…</option>' + DAYS.filter(x => x.idx !== activeDay).map(x => `<option value="${x.idx}">${x.name}</option>`).join('');
   }
 
-  function renderAll() { renderTabs(); renderRows(); renderSuggestions(); }
+  function renderAll() { renderTabs(); renderRows(); renderSettings(); renderSuggestions(); schedulePreview(); }
 
-  // ---------- events ----------
+  // ---------- events: lessen ----------
   $('tabs').addEventListener('click', e => {
     const b = e.target.closest('[data-day]'); if (!b) return;
-    activeDay = Number(b.dataset.day); $('copyTarget').style.display = 'none'; renderAll();
+    activeDay = b.dataset.day === 'exc' ? 'exc' : Number(b.dataset.day);
+    $('copyTarget').style.display = 'none'; renderTabs(); renderRows(); renderSuggestions();
   });
 
+  const nextDateOf = weekday => { const d = new Date(); while (d.getDay() !== weekday) d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
   $('rows').addEventListener('input', e => {
+    const sf = e.target.dataset.sf;
+    if (sf) {
+      const sb = substitutions[Number(e.target.closest('[data-sub]').dataset.sub)];
+      if (sf === 'cancelled') sb.cancelled = e.target.checked;
+      else if (sf === 'match') { sb.matchTime = e.target.value.slice(0, 5); sb.matchName = e.target.value.slice(6); }
+      else sb[sf] = e.target.value;
+      markDirty(); return;
+    }
+    const ef = e.target.dataset.ef;
+    if (ef) { exceptions[Number(e.target.closest('[data-exc]').dataset.exc)][ef] = e.target.value; markDirty(); return; }
     const row = e.target.closest('.row'); const f = e.target.dataset.f; if (!row || !f) return;
-    const c = dayData().classes[Number(row.dataset.i)];
-    if (f === 'onScreen') c.onScreen = e.target.checked;
+    const c = ctxList(row.dataset.ctx)[Number(row.dataset.i)];
+    if (f === 'onScreen' || f === 'cancelled') c[f] = e.target.checked;
     else if (f === 'duration') c.duration = Number(e.target.value) || 60;
     else c[f] = e.target.value;
     markDirty();
   });
   $('rows').addEventListener('change', e => {
-    // tijd of soort gewijzigd: opnieuw sorteren en overzicht bijwerken
-    if (e.target.dataset.f === 'time') { dayData().classes.sort((a, b) => a.time.localeCompare(b.time)); renderAll(); }
-    else if (e.target.dataset.f) renderTabs();
+    if (e.target.dataset.sf) {
+      if (e.target.dataset.sf === 'date') { substitutions.sort((a, b) => a.date.localeCompare(b.date)); renderAll(); }
+      return;
+    }
+    const ef = e.target.dataset.ef;
+    if (ef) {
+      if (ef === 'date') exceptions.sort((a, b) => a.date.localeCompare(b.date));
+      if (ef === 'date' || ef === 'mode') renderAll();
+      return;
+    }
+    const f = e.target.dataset.f; if (!f) return;
+    if (f === 'time') { ctxList(e.target.closest('.row').dataset.ctx).sort((a, b) => a.time.localeCompare(b.time)); renderAll(); }
+    else if (f === 'type' || f === 'color' || f === 'cancelled') { renderRows(); renderTabs(); }
   });
   $('rows').addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b) return;
-    const i = Number(b.closest('.row').dataset.i); const list = dayData().classes;
-    if (b.dataset.act === 'del') {
-      if (!confirm(`“${list[i].name || 'Deze les'}” van ${list[i].time} verwijderen?`)) return;
-      list.splice(i, 1);
-    } else if (b.dataset.act === 'dup') list.splice(i + 1, 0, { ...list[i] });
+    const act = b.dataset.act;
+    const excEl = b.closest('[data-exc]'); const ex = excEl ? exceptions[Number(excEl.dataset.exc)] : null;
+    const subEl = b.closest('[data-sub]');
+    switch (act) {
+      case 'subadd': {
+        const first = (data.find(d => d.dayIndex === new Date().getDay())?.classes || [])[0];
+        substitutions.push({ date: todayStr(), matchTime: first ? first.time : '', matchName: first ? first.name : '', instructor: '', name: '', time: '', cancelled: false });
+        substitutions.sort((a, b) => a.date.localeCompare(b.date)); break;
+      }
+      case 'subclean': substitutions = substitutions.filter(x => x.date >= todayStr()); break;
+      case 'subdel':
+        if (!confirm('Deze eenmalige wijziging verwijderen?')) return;
+        substitutions.splice(Number(subEl.dataset.sub), 1); break;
+      case 'sub': {
+        const rowEl = b.closest('.row'); const c = dayData().classes[Number(rowEl.dataset.i)];
+        const nd = { date: nextDateOf(activeDay), matchTime: c.time, matchName: c.name, instructor: '', name: '', time: '', cancelled: false };
+        substitutions.push(nd); substitutions.sort((a, b) => a.date.localeCompare(b.date));
+        activeDay = 'exc'; markDirty(); renderAll();
+        document.querySelector(`[data-sub="${substitutions.indexOf(nd)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      case 'excadd': exceptions.push({ date: todayStr(), mode: 'closed', label: '', classes: [] }); exceptions.sort((a, b) => a.date.localeCompare(b.date)); break;
+      case 'excclean': exceptions = exceptions.filter(x => x.date >= todayStr()); break;
+      case 'excdel':
+        if (!confirm('Deze uitzondering verwijderen?')) return;
+        exceptions.splice(Number(excEl.dataset.exc), 1); break;
+      case 'excaddclass': { const l = ex.classes; l.push(newClass(l.length ? l[l.length - 1].time : '')); break; }
+      case 'excimport': {
+        const base = data.find(d => d.dayIndex === new Date(ex.date + 'T12:00:00').getDay());
+        if (ex.classes.length && !confirm('De huidige lessen van deze uitzondering worden vervangen. Doorgaan?')) return;
+        ex.classes = base.classes.map(c => ({ ...c })); break;
+      }
+      default: {
+        const rowEl = b.closest('.row'); const i = Number(rowEl.dataset.i); const list = ctxList(rowEl.dataset.ctx); const c = list[i];
+        if (act === 'del') {
+          if (!confirm(`“${c.name || 'Deze les'}” van ${c.time} verwijderen?`)) return;
+          list.splice(i, 1);
+        } else if (act === 'dup') list.splice(i + 1, 0, { ...c });
+        else if (act === 'swatch') c.color = b.dataset.color;
+        else if (act === 'resetlook') { c.icon = ''; c.color = ''; }
+        else if (act === 'icon') {
+          openIconPicker(c.icon || TYPE_ICON[c.type], 'Kies een icoon voor ' + (c.name || 'deze les'), true, name => { c.icon = name; markDirty(); renderRows(); });
+          return;
+        }
+      }
+    }
     markDirty(); renderAll();
   });
 
   $('addBtn').addEventListener('click', () => {
-    const list = dayData().classes;
-    const last = list[list.length - 1];
-    list.push({ time: last ? last.time : '19:00', duration: 60, name: '', instructor: '', type: 'strength', onScreen: false });
+    const list = dayData().classes; const last = list[list.length - 1];
+    list.push(newClass(last ? last.time : ''));
     markDirty(); renderAll();
     const names = document.querySelectorAll('#rows input[data-f=name]'); names[names.length - 1]?.focus();
   });
-
-  $('copyBtn').addEventListener('click', () => {
-    const sel = $('copyTarget');
-    if (sel.style.display === 'none') { sel.style.display = ''; return; }
-  });
+  $('copyBtn').addEventListener('click', () => { $('copyTarget').style.display = ''; });
   $('copyTarget').addEventListener('change', e => {
-    const target = data.find(d => d.dayIndex === Number(e.target.value));
-    if (!target) return;
-    if (target.classes.length && !confirm(`${target.dayName} heeft al ${target.classes.length} les(sen). Die worden vervangen. Doorgaan?`)) return;
+    const target = data.find(d => d.dayIndex === Number(e.target.value)); if (!target) return;
+    if (target.classes.length && !confirm(`${target.dayName} heeft al ${target.classes.length} les(sen). Die worden vervangen. Doorgaan?`)) { e.target.value = ''; return; }
     target.classes = dayData().classes.map(c => ({ ...c }));
     markDirty(); e.target.style.display = 'none'; renderAll();
     setStatus(`Lessen gekopieerd naar ${target.dayName}`, 'ok');
   });
 
+  // ---------- events: instellingen ----------
+  const setAcc = (n, v) => { settings['accent' + n] = v; $('acc' + n).value = v; markDirty(); };
+  $('acc1').addEventListener('input', e => setAcc(1, e.target.value));
+  $('acc2').addEventListener('input', e => setAcc(2, e.target.value));
+  document.addEventListener('click', e => {
+    const s = e.target.closest('[data-acc]'); if (s) setAcc(s.dataset.acc, s.dataset.color);
+    const a = e.target.closest('[data-ann]'); if (a) { settings.announcement.color = a.dataset.color; $('annColor').value = a.dataset.color; markDirty(); }
+  });
+  $('accReset').addEventListener('click', () => { settings.accent1 = DEFAULT_SETTINGS.accent1; settings.accent2 = DEFAULT_SETTINGS.accent2; renderSettings(); markDirty(); });
+  $('showClock').addEventListener('change', e => { settings.showClock = e.target.checked; markDirty(); });
+  $('heroEnabled').addEventListener('change', e => { settings.nextHero.enabled = e.target.checked; markDirty(); });
+  $('heroWithin').addEventListener('input', e => { settings.nextHero.withinMin = Math.max(5, Number(e.target.value) || 120); markDirty(); });
+  $('annEnabled').addEventListener('change', e => { settings.announcement.enabled = e.target.checked; markDirty(); });
+  $('annText').addEventListener('input', e => { settings.announcement.text = e.target.value; markDirty(); });
+  $('annColor').addEventListener('input', e => { settings.announcement.color = e.target.value; markDirty(); });
+  $('annEvery').addEventListener('input', e => { settings.announcement.everySec = Math.max(10, Number(e.target.value) || 45); markDirty(); });
+  $('annShow').addEventListener('input', e => { settings.announcement.showSec = Math.max(3, Number(e.target.value) || 12); markDirty(); });
+  $('annUntil').addEventListener('input', e => { settings.announcement.until = e.target.value; markDirty(); });
+  $('annIcon').addEventListener('click', () => openIconPicker(settings.announcement.icon, 'Icoon voor de mededeling', false, name => {
+    settings.announcement.icon = name; $('annIcon').innerHTML = `<i class="fa-solid fa-${name}"></i>`; markDirty();
+  }));
+
   $('saveBtn').addEventListener('click', save);
 
   $('dlBtn').addEventListener('click', () => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' }));
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload(), null, 2) + '\n'], { type: 'application/json' }));
     a.download = 'schedule.json'; a.click(); URL.revokeObjectURL(a.href);
   });
   $('ulBtn').addEventListener('click', () => $('ulInput').click());
   $('ulInput').addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { data = normalize(JSON.parse(await f.text())); markDirty(); renderAll(); setStatus('Bestand geladen — nog niet gepubliceerd', 'dirty'); }
+    try { parseSchedule(JSON.parse(await f.text())); markDirty(); renderAll(); setStatus('Bestand geladen — nog niet opgeslagen', 'dirty'); }
     catch (err) { setStatus('✖ Ongeldig bestand', 'err'); }
     e.target.value = '';
   });

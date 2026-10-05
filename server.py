@@ -30,6 +30,15 @@ def read_pin():
 
 
 def valid_schedule(data):
+    # Nieuw formaat: {"settings": {...}, "days": [...]}; oud formaat: alleen de lijst met dagen
+    if isinstance(data, dict):
+        if not isinstance(data.get("settings", {}), dict):
+            return False
+        if not isinstance(data.get("exceptions", []), list):
+            return False
+        if not isinstance(data.get("substitutions", []), list):
+            return False
+        data = data.get("days")
     if not isinstance(data, list) or not data:
         return False
     for day in data:

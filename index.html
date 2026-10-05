@@ -26,8 +26,8 @@
           },
           colors: {
             brand: {
-              magenta: '#FF007F',
-              cyan: '#00F0FF',
+              magenta: 'rgb(var(--brand-magenta) / <alpha-value>)',
+              cyan: 'rgb(var(--brand-cyan) / <alpha-value>)',
               dark: '#070913',
               card: 'rgba(15, 23, 42, 0.75)',
             }
@@ -38,6 +38,7 @@
   </script>
 
   <style>
+    :root { --brand-magenta: 255 0 127; --brand-cyan: 0 240 255; }
     @keyframes marquee {
       0% { transform: translateX(0%); }
       100% { transform: translateX(-50%); }
@@ -118,9 +119,9 @@
     <!-- LEFT PANEL: Today's Schedule (Focus Display) -->
     <section id="todaySection" class="w-[330px] shrink-0 min-h-0 flex flex-col gap-2 overflow-hidden">
       <div class="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
-        <div class="flex items-center gap-2">
-          <div class="w-2.5 h-7 bg-brand-magenta rounded-full shadow-md shadow-brand-magenta/50"></div>
-          <h2 class="text-lg font-black font-display tracking-tight text-white uppercase leading-tight">VANDAAG</h2>
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-2.5 h-7 bg-brand-magenta rounded-full shadow-md shadow-brand-magenta/50 shrink-0"></div>
+          <h2 id="todayTitle" class="text-lg font-black font-display tracking-tight text-white uppercase leading-tight truncate">VANDAAG</h2>
           <p id="todaySubtext" class="hidden"></p>
         </div>
         <!-- Active Day Pill -->
@@ -143,11 +144,18 @@
           <h2 class="text-lg font-black font-display tracking-tight text-white uppercase leading-tight">WEEKROOSTER</h2>
         </div>
 
+        <div class="flex items-center gap-4">
         <!-- Legend / Key (Clear for gym floor) -->
         <div class="flex items-center gap-3 text-sm font-bold text-slate-300">
           <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-brand-cyan shadow-sm shadow-brand-cyan/50"></span> Screen</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-brand-magenta shadow-sm shadow-brand-magenta/50"></span> Live</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span> Hyrox</span>
+        </div>
+        <!-- Klok en datum -->
+        <div id="clockPod" class="flex items-baseline gap-2 whitespace-nowrap border-l border-white/15 pl-4">
+          <span id="clockTime" class="text-xl font-black font-display text-white leading-none">--:--</span>
+          <span id="clockDate" class="text-sm font-semibold text-slate-400 leading-none"></span>
+        </div>
         </div>
       </div>
 
@@ -156,6 +164,9 @@
         <!-- Rendered dynamically via JS -->
       </div>
     </section>
+
+    <!-- Schermvullende mededeling (aan/uit en tekst via dashboard) -->
+    <div id="announceOverlay" class="absolute inset-0 z-40 flex flex-col items-center justify-center text-center px-16 opacity-0 pointer-events-none transition-opacity duration-500"></div>
 
   </main>
 
@@ -269,6 +280,49 @@
     let simulationDay = null; // if null, uses actual current day
     let forceLiveSim = false; // toggle for testing the "Nu aan de gang" state
 
+    // ---- Uitzonderingen per datum ----
+    let exceptions = [];
+    let substitutions = [];
+    const pad2 = n => String(n).padStart(2, '0');
+    const dateStr = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const escHtml = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    // Datum van een weekdag in de huidige week (maandag t/m zondag)
+    function dateOfWeekday(idx) {
+      const now = new Date();
+      const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+      return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + ((idx + 6) % 7));
+    }
+    // Lessen van een weekdag, rekening houdend met een uitzondering op die datum
+    function getEffectiveDay(idx, dateString) {
+      const base = scheduleData.find(d => d.dayIndex === idx) || { dayIndex: idx, dayName: 'Onbekend', classes: [] };
+      const ds = dateString || dateStr(dateOfWeekday(idx));
+      const ex = exceptions.find(e => e.date === ds) || null;
+      let classes = base.classes;
+      if (ex) {
+        const extra = Array.isArray(ex.classes) ? ex.classes : [];
+        if (ex.mode === 'closed') classes = [];
+        else if (ex.mode === 'replace') classes = extra.slice();
+        else classes = base.classes.concat(extra);
+      }
+      // Eenmalige vervangingen (andere instructeur, naam, tijd of vervallen) op deze datum
+      const subs = substitutions.filter(x => x.date === ds);
+      if (subs.length) {
+        classes = classes.map(c => {
+          const sub = subs.find(x => x.matchTime === c.time && x.matchName === c.name);
+          if (!sub) return c;
+          const o = Object.assign({}, c, { _sub: true });
+          if (sub.instructor) o.instructor = sub.instructor;
+          if (sub.name) o.name = sub.name;
+          if (sub.time && /^\d{2}:\d{2}$/.test(sub.time)) o.time = sub.time;
+          if (sub.cancelled) o.cancelled = true;
+          return o;
+        });
+      }
+      if (ex || subs.length) classes = classes.slice().sort((a, b) => a.time.localeCompare(b.time));
+      return { dayIndex: idx, dayName: base.dayName, classes, exception: ex, date: ds };
+    }
+
     function getCurrentTargetDay() {
       const now = new Date();
       return simulationDay !== null ? simulationDay : now.getDay();
@@ -306,19 +360,22 @@
       if (isActualDay) {
         return classes.find(c => {
           const [h, m] = c.time.split(':').map(Number);
-          return (h * 60 + m) > currentMin;
+          return !c.cancelled && (h * 60 + m) > currentMin;
         }) || null;
       } else {
         // In demo / testmodus: zoek de eerstvolgende of toon de eerste les van die dag
         const found = classes.find(c => {
           const [h, m] = c.time.split(':').map(Number);
-          return (h * 60 + m) > currentMin;
+          return !c.cancelled && (h * 60 + m) > currentMin;
         });
-        return found || classes[0];
+        return found || classes.find(c => !c.cancelled) || null;
       }
     }
 
     function getClassStatus(classItem, isNextUpcoming, isActualDay) {
+      if (classItem.cancelled) {
+        return { status: 'CANCELLED', label: 'Vervallen', color: 'bg-red-500/20 text-red-300 border border-red-500/60' };
+      }
       const now = new Date();
       const [cHours, cMinutes] = classItem.time.split(':').map(Number);
       const startMin = cHours * 60 + cMinutes;
@@ -376,38 +433,79 @@
 
     function renderTodaySection() {
       const targetDayIndex = getCurrentTargetDay();
-      const dayData = scheduleData.find(d => d.dayIndex === targetDayIndex) || { dayName: 'Onbekend', classes: [] };
       const container = document.getElementById('todayClassesContainer');
       const subtext = document.getElementById('todaySubtext');
       const badge = document.getElementById('activeDayBadge');
+      const title = document.getElementById('todayTitle');
 
-      const isActualDay = simulationDay === null || simulationDay === (new Date().getDay());
+      const now = new Date();
+      const currentMinNow = now.getHours() * 60 + now.getMinutes();
+      let dayData = getEffectiveDay(targetDayIndex);
+
+      // Zijn alle lessen van vandaag voorbij? Toon dan automatisch de lessen van morgen.
+      let tomorrowMode = false;
+      if (simulationDay === null && !(dayData.exception && dayData.exception.mode === 'closed')) {
+        const remaining = dayData.classes.filter(c => !c.cancelled && toMin(c.time) + (c.duration || 60) > currentMinNow).length;
+        if (remaining === 0 && (dayData.classes.length > 0 || currentMinNow >= 12 * 60)) {
+          const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          dayData = getEffectiveDay(t.getDay(), dateStr(t));
+          tomorrowMode = true;
+        }
+      }
+
+      const isActualDay = !tomorrowMode && (simulationDay === null || simulationDay === now.getDay());
+      const heroCfg = settings.nextHero || {};
+      const heroEnabled = heroCfg.enabled !== false;
+      const heroWithin = Number(heroCfg.withinMin) || 120;
+      const exLabel = dayData.exception && dayData.exception.label ? ' · ' + dayData.exception.label : '';
+      title.textContent = (tomorrowMode ? 'MORGEN' : 'VANDAAG') + exLabel;
       subtext.textContent = `Lessen voor ${dayData.dayName.toLowerCase()} ${isActualDay ? '(Vandaag)' : '(Demo Modus)'}`;
-      badge.textContent = dayData.dayName;
+      badge.textContent = tomorrowMode ? 'Morgen · ' + dayData.dayName : dayData.dayName;
 
       container.innerHTML = '';
 
       if (!dayData.classes || dayData.classes.length === 0) {
+        const ex = dayData.exception;
+        const when = tomorrowMode ? 'Morgen' : 'Vandaag';
         container.innerHTML = `
-          <div class="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-white/10 rounded-2xl">
-            <i class="fa-solid fa-calendar-xmark text-6xl text-slate-600 mb-4"></i>
-            <h3 class="text-3xl font-black text-slate-200">Geen vaste groepslessen</h3>
-            <p class="text-lg text-slate-400 mt-2 max-w-sm">Op deze dag staan geen instructeurlessen gepland. De fitnesszaal en on-screen zalen zijn 24/7 beschikbaar.</p>
+          <div class="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8 border-2 border-dashed ${ex ? 'border-red-500/40' : 'border-white/10'} rounded-2xl">
+            <i class="fa-solid fa-calendar-xmark text-6xl ${ex ? 'text-red-400' : 'text-slate-600'} mb-4"></i>
+            <h3 class="text-3xl font-black text-slate-200">${ex ? escHtml(ex.label || 'Gesloten') : 'Geen vaste groepslessen'}</h3>
+            <p class="text-lg text-slate-400 mt-2 max-w-sm">${ex ? when + ' geen groepslessen.' : 'Op deze dag staan geen instructeurlessen gepland. De fitnesszaal en on-screen zalen zijn 24/7 beschikbaar.'}</p>
           </div>
         `;
         return;
       }
 
-      const nextUpcomingClass = getNextUpcomingClass(dayData.classes, isActualDay);
+      const nextUpcomingClass = tomorrowMode ? null : getNextUpcomingClass(dayData.classes, isActualDay);
 
       dayData.classes.forEach(item => {
         const styleInfo = classTheme[item.type] || classTheme.strength;
+        const iconName = item.icon && /^[a-z0-9-]+$/.test(item.icon) ? 'fa-' + item.icon : styleInfo.icon;
+        const customColor = isHex(item.color) ? item.color : null;
         const isNextUpcoming = (nextUpcomingClass === item);
         const status = getClassStatus(item, isNextUpcoming, isActualDay);
         const isLive = status.status === 'LIVE';
+        const isCancelled = status.status === 'CANCELLED';
+
+        // Afgelopen lessen als dunne regel, zodat er ruimte is voor wat nog komt
+        if (status.status === 'ENDED') {
+          const slim = document.createElement('div');
+          slim.className = 'flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/40 border border-white/5 text-slate-500';
+          slim.innerHTML = `<i class="fa-solid fa-check text-xs"></i><span class="font-mono text-sm">${item.time}</span><span class="text-sm truncate">${escHtml(item.name)}</span><span class="ml-auto text-xs uppercase">afgelopen</span>`;
+          container.appendChild(slim);
+          return;
+        }
+        const isHero = status.status === 'COUNTDOWN' && heroEnabled && (toMin(item.time) - currentMinNow) <= heroWithin;
+        const instrHtml = item._sub
+          ? `<span class="text-sm text-amber-300 font-bold truncate"><i class="fa-solid fa-arrows-rotate text-xs mr-1"></i>${escHtml(item.instructor)} <span class="text-[11px] uppercase">vervanging</span></span>`
+          : `<span class="text-sm ${isLive ? 'text-emerald-300' : 'text-slate-300'} font-semibold truncate"><i class="fa-solid fa-user-tie text-xs mr-1 ${isLive ? 'text-emerald-400' : 'text-brand-magenta'}"></i>${item.instructor}</span>`;
+        const iconBoxClass = isLive ? 'bg-gradient-to-br from-emerald-500 to-teal-400 ring-2 ring-emerald-300'
+          : customColor ? '' : 'bg-gradient-to-br ' + styleInfo.color;
+        const iconBoxStyle = (!isLive && customColor) ? `style="background:linear-gradient(135deg, ${customColor}, ${shade(customColor, 0.45)})"` : '';
 
         const card = document.createElement('div');
-        card.className = `p-2 rounded-xl border transition-all duration-300 ${
+        card.className = `p-2 rounded-xl border transition-all duration-300 ${isCancelled ? 'opacity-60' : ''} ${
           isLive 
             ? 'glass-panel-live live-pulse-glow z-10' 
             : isNextUpcoming
@@ -428,23 +526,46 @@
 
         card.innerHTML = `
           <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br ${isLive ? 'from-emerald-500 to-teal-400 ring-2 ring-emerald-300' : styleInfo.color} flex items-center justify-center shadow-md text-white text-lg shrink-0">
-              <i class="fa-solid ${styleInfo.icon}"></i>
+            <div class="w-10 h-10 rounded-lg ${iconBoxClass} flex items-center justify-center shadow-md text-white text-lg shrink-0" ${iconBoxStyle}>
+              <i class="fa-solid ${iconName}"></i>
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline gap-2 leading-tight">
-                <span class="text-2xl font-black font-display tracking-tight ${isLive ? 'text-emerald-300' : 'text-white'}">${item.time}</span>
-                <h3 class="text-lg font-extrabold ${isLive ? 'text-emerald-100' : 'text-white'} truncate">${item.name}</h3>
+                <span class="text-2xl font-black font-display tracking-tight ${isLive ? 'text-emerald-300' : 'text-white'} ${isCancelled ? 'line-through' : ''}">${item.time}</span>
+                <h3 class="text-lg font-extrabold ${isLive ? 'text-emerald-100' : 'text-white'} ${isCancelled ? 'line-through' : ''} truncate">${item.name}</h3>
                 ${item.onScreen ? `<i class="fa-solid fa-tv text-sm text-brand-cyan shrink-0"></i>` : ''}
               </div>
               <div class="flex items-center justify-between gap-2 mt-0.5">
-                <span class="text-sm ${isLive ? 'text-emerald-300' : 'text-slate-300'} font-semibold truncate"><i class="fa-solid fa-user-tie text-xs mr-1 ${isLive ? 'text-emerald-400' : 'text-brand-magenta'}"></i>${item.instructor}</span>
+                ${instrHtml}
                 ${isLive ? '' : chip}
               </div>
             </div>
           </div>
           ${isLive ? `<div class="mt-1.5 flex flex-col gap-1">${chip}<div class="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden border border-emerald-500/40"><div class="h-full bg-gradient-to-r from-emerald-500 to-teal-300 rounded-full" style="width: ${status.progressPct}%"></div></div></div>` : ''}
         `;
+
+        // De eerstvolgende les groot in beeld, met aftelklok
+        if (isHero) {
+          card.className = 'p-2.5 rounded-xl border-2 border-brand-cyan bg-gradient-to-br from-brand-cyan/20 to-slate-900/95 shadow-lg shadow-brand-cyan/30';
+          card.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-black tracking-widest uppercase text-brand-cyan"><i class="fa-solid fa-forward-step mr-1"></i>Volgende les</span>
+              <span class="font-mono font-black text-2xl text-brand-cyan leading-none"><i class="fa-solid fa-stopwatch text-lg mr-1.5 animate-pulse"></i>${getCountdownString(item.time)}</span>
+            </div>
+            <div class="flex items-center gap-2.5 mt-2">
+              <div class="w-12 h-12 rounded-xl ${iconBoxClass} flex items-center justify-center shadow-md text-white text-2xl shrink-0" ${iconBoxStyle}>
+                <i class="fa-solid ${iconName}"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline gap-2 leading-none">
+                  <span class="text-3xl font-black font-display tracking-tight text-white">${item.time}</span>
+                  ${item.onScreen ? `<i class="fa-solid fa-tv text-sm text-brand-cyan shrink-0"></i>` : ''}
+                </div>
+                <h3 class="text-2xl font-extrabold text-white truncate leading-tight">${escHtml(item.name)}</h3>
+                <div class="truncate">${instrHtml}</div>
+              </div>
+            </div>`;
+        }
 
         container.appendChild(card);
       });
@@ -463,8 +584,10 @@
       const orderedDays = [1, 2, 3, 4, 5, 6, 0];
 
       orderedDays.forEach(dayIdx => {
-        const dayData = scheduleData.find(d => d.dayIndex === dayIdx);
-        if (!dayData) return;
+        if (!scheduleData.find(d => d.dayIndex === dayIdx)) return;
+        const dayData = getEffectiveDay(dayIdx);
+        const ex = dayData.exception;
+        const exClosed = !!ex && ex.mode === 'closed';
 
         const isToday = dayIdx === targetDayIndex;
         const colCard = document.createElement('div');
@@ -476,7 +599,9 @@
 
         let classesHtml = '';
         if (dayData.classes.length === 0) {
-          classesHtml = `<p class="text-sm text-slate-500 italic py-1 font-medium">Geen vaste lessen</p>`;
+          classesHtml = exClosed
+            ? `<p class="text-sm text-red-300 py-1 font-bold">Gesloten</p>`
+            : `<p class="text-sm text-slate-500 italic py-1 font-medium">Geen vaste lessen</p>`;
         } else {
           classesHtml = dayData.classes.map(c => {
             const [cH, cM] = c.time.split(':').map(Number);
@@ -487,11 +612,13 @@
             const isThisClassLive = isToday && (
               (isActualDay && currentMin >= startM && currentMin < endM) ||
               (forceLiveSim && dayData.classes[0] === c)
-            );
+            ) && !c.cancelled;
 
             let dotColor = 'bg-brand-magenta';
             if (c.onScreen) dotColor = 'bg-brand-cyan';
             if (c.type === 'hyrox') dotColor = 'bg-amber-400';
+            const dotStyle = isHex(c.color) ? `style="background:${c.color}"` : '';
+            if (dotStyle) dotColor = '';
 
             return `
               <div class="py-px border-b border-white/10 last:border-0 ${isThisClassLive ? 'bg-emerald-500/20 px-1.5 rounded-lg border-emerald-500/40 text-emerald-200' : ''}">
@@ -502,11 +629,11 @@
                       <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                     </span>
                   ` : `
-                    <span class="w-2 h-2 mt-[5px] rounded-full shrink-0 ${dotColor} shadow-sm"></span>
+                    <span class="w-2 h-2 mt-[5px] rounded-full shrink-0 ${dotColor} shadow-sm" ${dotStyle}></span>
                   `}
                   <div class="min-w-0">
-                    <div class="font-black text-[13px] leading-tight ${isThisClassLive ? 'text-emerald-300' : 'text-brand-cyan'}">${c.time}</div>
-                    <div class="font-extrabold text-[15px] leading-tight ${isThisClassLive ? 'text-emerald-200' : 'text-slate-100'}">${c.name}</div>
+                    <div class="font-black text-[13px] leading-tight ${isThisClassLive ? 'text-emerald-300' : 'text-brand-cyan'} ${c.cancelled ? 'line-through opacity-50' : ''}">${c.time}</div>
+                    <div class="font-extrabold text-[15px] leading-tight ${isThisClassLive ? 'text-emerald-200' : 'text-slate-100'} ${c.cancelled ? 'opacity-50' : ''}"><span class="${c.cancelled ? 'line-through' : ''}">${c.name}</span>${c.cancelled ? ' <span class="text-[11px] font-bold uppercase text-red-300">vervallen</span>' : ''}</div>
                   </div>
                 </div>
               </div>
@@ -524,6 +651,7 @@
                 ? `<span class="text-sm font-black uppercase px-1.5 rounded bg-brand-magenta text-white shadow-sm shadow-brand-magenta/40">Nu</span>`
                 : ''}
             </div>
+            ${ex ? `<div class="text-[12px] font-bold leading-tight py-0.5 ${exClosed ? 'text-red-300' : 'text-amber-300'}">${escHtml(ex.label || (exClosed ? 'Gesloten' : 'Aangepast'))}</div>` : ''}
             <div class="${dayIdx === 0 ? 'grid grid-cols-2 gap-x-3' : ''}">
               ${classesHtml}
             </div>
@@ -600,21 +728,109 @@
       }
     }
 
+    // ---- Instellingen (kleuren, mededeling) ----
+    const PREVIEW = new URLSearchParams(location.search).has('preview');
+    let settings = {};
+    let previewAnnounce = false;
+    let announceKey = '';
+
+    function isHex(c) { return typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c); }
+    function hexToTriplet(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+    }
+    // Meng een kleur met zwart (amount 0..1) voor het donkere eind van een verloop
+    function shade(hex, amount) {
+      const n = parseInt(hex.slice(1), 16);
+      const f = v => Math.round(v * (1 - amount)).toString(16).padStart(2, '0');
+      return '#' + f((n >> 16) & 255) + f((n >> 8) & 255) + f(n & 255);
+    }
+    function applySettings() {
+      const root = document.documentElement.style;
+      root.setProperty('--brand-magenta', hexToTriplet(isHex(settings.accent1) ? settings.accent1 : '#ff007f'));
+      root.setProperty('--brand-cyan', hexToTriplet(isHex(settings.accent2) ? settings.accent2 : '#00f0ff'));
+      document.getElementById('clockPod').classList.toggle('hidden', settings.showClock === false);
+      announceKey = '';
+      updateAnnouncement();
+    }
+
+    function updateClock() {
+      const n = new Date();
+      document.getElementById('clockTime').textContent = `${pad2(n.getHours())}:${pad2(n.getMinutes())}`;
+      document.getElementById('clockDate').textContent = n.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+
+    function announcementWanted() {
+      const a = settings.announcement;
+      if (!a || !a.text || !String(a.text).trim()) return false;
+      if (PREVIEW) return previewAnnounce;
+      if (!a.enabled) return false;
+      if (a.until && new Date() > new Date(a.until + 'T23:59:59')) return false;
+      const every = Math.max(10, Number(a.everySec) || 45);
+      const show = Math.max(3, Number(a.showSec) || 12);
+      return (Math.floor(Date.now() / 1000) % (every + show)) >= every;
+    }
+    function updateAnnouncement() {
+      const el = document.getElementById('announceOverlay');
+      const a = settings.announcement || {};
+      const wanted = announcementWanted();
+      if (wanted) {
+        const key = JSON.stringify([a.text, a.color, a.icon]);
+        if (key !== announceKey) {
+          announceKey = key;
+          const col = isHex(a.color) ? a.color : '#ff007f';
+          const icon = a.icon && /^[a-z0-9-]+$/.test(a.icon) ? a.icon : 'bullhorn';
+          el.style.background = `radial-gradient(circle at 50% 35%, ${col} 0%, ${shade(col, 0.7)} 55%, #070913 100%)`;
+          el.innerHTML = '';
+          const i = document.createElement('i');
+          i.className = `fa-solid fa-${icon} text-7xl text-white mb-6`;
+          const t = document.createElement('div');
+          t.className = 'font-display font-black text-white leading-tight';
+          t.style.fontSize = '46px';
+          t.style.textShadow = '0 2px 18px rgba(0,0,0,.45)';
+          t.textContent = a.text; // textContent: geen HTML uit het dashboard uitvoeren
+          el.append(i, t);
+        }
+      }
+      el.classList.toggle('opacity-0', !wanted);
+      el.classList.toggle('opacity-100', wanted);
+    }
+
+    function setSchedule(raw) {
+      const days = Array.isArray(raw) ? raw : (raw && raw.days);
+      if (!Array.isArray(days) || !days.every(d => typeof d.dayIndex === 'number' && Array.isArray(d.classes))) return false;
+      days.forEach(d => d.classes.sort((a, b) => a.time.localeCompare(b.time)));
+      scheduleData = days;
+      exceptions = (!Array.isArray(raw) && Array.isArray(raw.exceptions))
+        ? raw.exceptions.filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && Array.isArray(e.classes || [])) : [];
+      substitutions = (!Array.isArray(raw) && Array.isArray(raw.substitutions))
+        ? raw.substitutions.filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && typeof x.matchTime === 'string') : [];
+      settings = (!Array.isArray(raw) && raw.settings && typeof raw.settings === 'object') ? raw.settings : {};
+      applySettings();
+      renderTodaySection();
+      renderWeekGrid();
+      return true;
+    }
+
     // Haal het actuele rooster op (schedule.json). Bij een fout blijft het laatst bekende rooster staan.
     async function loadRemoteSchedule() {
       try {
         const res = await fetch('schedule.json?t=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) return;
-        const data = await res.json();
-        if (!Array.isArray(data) || !data.every(d => typeof d.dayIndex === 'number' && Array.isArray(d.classes))) return;
-        data.forEach(d => d.classes.sort((a, b) => a.time.localeCompare(b.time)));
-        scheduleData = data;
-        renderTodaySection();
-        renderWeekGrid();
+        setSchedule(await res.json());
       } catch (e) {
         console.warn('schedule.json niet geladen, reserve-rooster actief', e);
       }
     }
+
+    // Live voorbeeld vanuit het dashboard (admin.html) via postMessage
+    window.addEventListener('message', (e) => {
+      const m = e.data;
+      if (!PREVIEW || e.origin !== location.origin || !m || m.type !== 'hrm-preview') return;
+      previewAnnounce = !!m.announce;
+      simulationDay = (typeof m.simDay === 'number') ? m.simDay : null;
+      setSchedule({ days: m.days, settings: m.settings, exceptions: m.exceptions, substitutions: m.substitutions });
+    });
 
     window.onload = function() {
       // Direct renderen
@@ -623,12 +839,19 @@
       buildTestButtons();
 
       // Rooster uit schedule.json laden en elke 2 minuten verversen
-      loadRemoteSchedule();
-      setInterval(loadRemoteSchedule, 2 * 60 * 1000);
+      if (!PREVIEW) {
+        loadRemoteSchedule();
+        setInterval(loadRemoteSchedule, 2 * 60 * 1000);
+      } else if (window.parent !== window) {
+        window.parent.postMessage({ type: 'hrm-preview-ready' }, location.origin);
+      }
 
       // Update de countdown en lesstatussen elke seconde live (zonder vertraging)
+      updateClock();
       setInterval(() => {
         renderTodaySection();
+        updateAnnouncement();
+        updateClock();
       }, 1000);
 
       // Her-render weekrooster elke minuut

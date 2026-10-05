@@ -1,67 +1,320 @@
-[
-  {
-    "dayIndex": 1,
-    "dayName": "Maandag",
-    "classes": [
-      { "time": "09:00", "duration": 60, "name": "TotalBalance", "instructor": "Instructeur", "type": "balance", "onScreen": false },
-      { "time": "10:00", "duration": 60, "name": "Zumba", "instructor": "By All Stars Movement", "type": "dance", "onScreen": false },
-      { "time": "18:30", "duration": 60, "name": "PowerPump", "instructor": "Virtueel", "type": "strength", "onScreen": true },
-      { "time": "19:00", "duration": 60, "name": "Hyrox", "instructor": "Coach", "type": "hyrox", "onScreen": false },
-      { "time": "19:30", "duration": 60, "name": "TotalBalance", "instructor": "Virtueel", "type": "balance", "onScreen": true }
-    ]
+{
+  "version": 2,
+  "settings": {
+    "accent1": "#ff007f",
+    "accent2": "#00f0ff",
+    "showClock": true,
+    "nextHero": {
+      "enabled": true,
+      "withinMin": 120
+    },
+    "announcement": {
+      "enabled": false,
+      "text": "Zaterdag",
+      "icon": "bullhorn",
+      "color": "#ff007f",
+      "everySec": 20,
+      "showSec": 12,
+      "until": ""
+    }
   },
-  {
-    "dayIndex": 2,
-    "dayName": "Dinsdag",
-    "classes": [
-      { "time": "18:30", "duration": 60, "name": "Spinning", "instructor": "Virtueel", "type": "cycling", "onScreen": true },
-      { "time": "20:00", "duration": 60, "name": "Zumba", "instructor": "By All Stars Movement", "type": "dance", "onScreen": false }
-    ]
-  },
-  {
-    "dayIndex": 3,
-    "dayName": "Woensdag",
-    "classes": [
-      { "time": "15:00", "duration": 60, "name": "Starmoves 5+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false },
-      { "time": "16:00", "duration": 60, "name": "Hiphop 8+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false },
-      { "time": "17:00", "duration": 60, "name": "HipHop 10+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false },
-      { "time": "18:30", "duration": 60, "name": "Circuit Training", "instructor": "Fitness Coach", "type": "strength", "onScreen": false }
-    ]
-  },
-  {
-    "dayIndex": 4,
-    "dayName": "Donderdag",
-    "classes": [
-      { "time": "18:30", "duration": 60, "name": "Spinning", "instructor": "Virtueel", "type": "cycling", "onScreen": true },
-      { "time": "18:30", "duration": 60, "name": "PowerPump", "instructor": "Virtueel", "type": "strength", "onScreen": true },
-      { "time": "19:00", "duration": 60, "name": "Kickboksen", "instructor": "Instructeur", "type": "combat", "onScreen": false },
-      { "time": "19:30", "duration": 60, "name": "TotalBalance", "instructor": "Virtueel", "type": "balance", "onScreen": true }
-    ]
-  },
-  {
-    "dayIndex": 5,
-    "dayName": "Vrijdag",
-    "classes": [
-      { "time": "09:00", "duration": 60, "name": "Circuit Training", "instructor": "Fitness Coach", "type": "strength", "onScreen": false },
-      { "time": "09:30", "duration": 60, "name": "Vinyasa Yoga", "instructor": "Yoga Docent", "type": "balance", "onScreen": false },
-      { "time": "18:15", "duration": 60, "name": "Testing", "instructor": "Test", "type": "strength", "onScreen": false }
-    ]
-  },
-  {
-    "dayIndex": 6,
-    "dayName": "Zaterdag",
-    "classes": [
-      { "time": "10:00", "duration": 60, "name": "Danskriebels 2+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false },
-      { "time": "10:45", "duration": 60, "name": "Starmoves 5+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false },
-      { "time": "11:45", "duration": 60, "name": "Hiphop 8+", "instructor": "By All Stars Movement", "type": "kids", "onScreen": false }
-    ]
-  },
-  {
-    "dayIndex": 0,
-    "dayName": "Zondag",
-    "classes": [
-      { "time": "09:30", "duration": 60, "name": "PowerPump", "instructor": "Virtueel", "type": "strength", "onScreen": true },
-      { "time": "10:00", "duration": 60, "name": "Spinning", "instructor": "Virtueel", "type": "cycling", "onScreen": true }
-    ]
-  }
-]
+  "exceptions": [],
+  "substitutions": [],
+  "days": [
+    {
+      "dayIndex": 1,
+      "dayName": "Maandag",
+      "classes": [
+        {
+          "time": "09:00",
+          "duration": 60,
+          "name": "TotalBalance",
+          "instructor": "Instructeur",
+          "type": "balance",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "10:00",
+          "duration": 60,
+          "name": "Zumba",
+          "instructor": "By All Stars Movement",
+          "type": "dance",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "18:30",
+          "duration": 60,
+          "name": "PowerPump",
+          "instructor": "Virtueel",
+          "type": "strength",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "19:00",
+          "duration": 60,
+          "name": "Hyrox",
+          "instructor": "Coach",
+          "type": "hyrox",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "19:30",
+          "duration": 60,
+          "name": "TotalBalance",
+          "instructor": "Virtueel",
+          "type": "balance",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 2,
+      "dayName": "Dinsdag",
+      "classes": [
+        {
+          "time": "18:30",
+          "duration": 60,
+          "name": "Spinning",
+          "instructor": "Virtueel",
+          "type": "cycling",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "20:00",
+          "duration": 60,
+          "name": "Zumba",
+          "instructor": "By All Stars Movement",
+          "type": "dance",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 3,
+      "dayName": "Woensdag",
+      "classes": [
+        {
+          "time": "15:00",
+          "duration": 60,
+          "name": "Starmoves 5+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "16:00",
+          "duration": 60,
+          "name": "Hiphop 8+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "17:00",
+          "duration": 60,
+          "name": "HipHop 10+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "18:30",
+          "duration": 60,
+          "name": "Circuit Training",
+          "instructor": "Fitness Coach",
+          "type": "strength",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 4,
+      "dayName": "Donderdag",
+      "classes": [
+        {
+          "time": "18:30",
+          "duration": 60,
+          "name": "Spinning",
+          "instructor": "Virtueel",
+          "type": "cycling",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "18:30",
+          "duration": 60,
+          "name": "PowerPump",
+          "instructor": "Virtueel",
+          "type": "strength",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "19:00",
+          "duration": 60,
+          "name": "Kickboksen",
+          "instructor": "Instructeur",
+          "type": "combat",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "19:30",
+          "duration": 60,
+          "name": "TotalBalance",
+          "instructor": "Virtueel",
+          "type": "balance",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 5,
+      "dayName": "Vrijdag",
+      "classes": [
+        {
+          "time": "09:00",
+          "duration": 60,
+          "name": "Circuit Training",
+          "instructor": "Fitness Coach",
+          "type": "strength",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "09:30",
+          "duration": 60,
+          "name": "Vinyasa Yoga",
+          "instructor": "Yoga Docent",
+          "type": "balance",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "18:15",
+          "duration": 60,
+          "name": "Testing",
+          "instructor": "Test",
+          "type": "strength",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 6,
+      "dayName": "Zaterdag",
+      "classes": [
+        {
+          "time": "10:00",
+          "duration": 60,
+          "name": "Danskriebels 2+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "10:45",
+          "duration": 60,
+          "name": "Starmoves 5+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "11:45",
+          "duration": 60,
+          "name": "Hiphop 8+",
+          "instructor": "By All Stars Movement",
+          "type": "kids",
+          "onScreen": false,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "dayIndex": 0,
+      "dayName": "Zondag",
+      "classes": [
+        {
+          "time": "09:30",
+          "duration": 60,
+          "name": "PowerPump",
+          "instructor": "Virtueel",
+          "type": "strength",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        },
+        {
+          "time": "10:00",
+          "duration": 60,
+          "name": "Spinning",
+          "instructor": "Virtueel",
+          "type": "cycling",
+          "onScreen": true,
+          "icon": "",
+          "color": "",
+          "cancelled": false
+        }
+      ]
+    }
+  ]
+}
